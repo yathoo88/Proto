@@ -22,7 +22,7 @@ import {
   Settings,
   Zap
 } from "lucide-react";
-import { sampleOffers } from "@/data/mock-data";
+import { sampleCustomerOffers } from "@/data/mock-data";
 import { CustomerOffer } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -188,7 +188,7 @@ function OfferResponseSheet({ offer }: { offer: CustomerOffer }) {
 }
 
 export default function OffersPage() {
-  const [offers] = useState<CustomerOffer[]>(sampleOffers);
+  const [offers] = useState<CustomerOffer[]>(sampleCustomerOffers);
   const [statusFilter, setStatusFilter] = useState("all");
 
   const filteredOffers = offers.filter(offer => {
