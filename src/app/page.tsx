@@ -11,13 +11,11 @@ import {
   TrendingUp, 
   Target, 
   Package, 
-  AlertTriangle,
   RefreshCw,
   Download,
   Store
 } from "lucide-react";
 import {
-  sampleDashboardMetrics,
   sampleChartData,
   sampleProducts,
   sampleOrders
@@ -25,7 +23,7 @@ import {
 import { CURRENT_USER_STORE, DEMO_MONTHLY_FEE_SUMMARY } from "@/data/ebay-demo-data";
 
 export default function Dashboard() {
-  const metrics = sampleDashboardMetrics;
+  // const metrics = sampleDashboardMetrics;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

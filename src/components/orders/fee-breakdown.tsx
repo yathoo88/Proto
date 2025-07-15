@@ -33,7 +33,7 @@ interface FeeBreakdownCardProps {
 
 // 수수료 유형별 아이콘 매핑
 const getFeeIcon = (feeType: string) => {
-  const iconMap: Record<string, React.ComponentType<any>> = {
+  const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
     'FINAL_VALUE_FEE': TrendingUp,
     'FINAL_VALUE_FEE_FIXED_PER_ORDER': Package,
     'PAYMENT_PROCESSING_FEE': CreditCard,

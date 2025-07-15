@@ -8,16 +8,13 @@ import { Progress } from '@/components/ui/progress';
 import { 
   EBAY_STORE_LEVELS, 
   CURRENT_USER_STORE,
-  EbayStoreLevel,
-  EbayStoreInfo 
+  EbayStoreLevel
 } from '@/data/ebay-demo-data';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+// import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Store, 
   Crown, 
-  TrendingUp, 
-  Package, 
   Zap, 
   CheckCircle, 
   ArrowRight,

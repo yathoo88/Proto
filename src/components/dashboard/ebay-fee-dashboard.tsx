@@ -3,18 +3,15 @@
 import { useState, useEffect } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { 
-  DEMO_EBAY_TRANSACTIONS, 
   DEMO_MONTHLY_FEE_SUMMARY, 
   CURRENT_USER_STORE,
   EBAY_PROMOTIONS_2025,
   MonthlyFeeSummary 
 } from '@/data/ebay-demo-data';
 import { 
-  calculateAllFees, 
-  calculateMonthlyFeeSummary,
-  EBAY_FEE_RATES 
+  calculateAllFees
 } from '@/lib/ebay-fee-calculator';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Store, Zap } from 'lucide-react';
@@ -30,7 +27,7 @@ interface FeeMetric {
 export function EbayFeeDashboard() {
   const [feeMetrics, setFeeMetrics] = useState<FeeMetric[]>([]);
   const [currentMonthData, setCurrentMonthData] = useState<MonthlyFeeSummary | null>(null);
-  const [activePromotions, setActivePromotions] = useState(EBAY_PROMOTIONS_2025);
+  const [activePromotions] = useState(EBAY_PROMOTIONS_2025);
 
   useEffect(() => {
     // 현재 월 데이터 설정
@@ -242,7 +239,7 @@ export function EbayFeeDashboard() {
                 defaultValue="100"
                 onChange={(e) => {
                   const price = parseFloat(e.target.value) || 0;
-                  const calculation = calculateAllFees(price);
+                  calculateAllFees(price);
                   // 실시간 계산 결과 업데이트 로직
                 }}
               />

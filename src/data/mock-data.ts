@@ -96,10 +96,10 @@ export const sampleProducts: Product[] = [
 ];
 
 // eBay 거래 데이터를 주문 형태로 변환하는 헬퍼 함수
-function convertEbayTransactionToOrder(transaction: any, index: number): Order {
+function convertEbayTransactionToOrder(transaction: EbayOrder, index: number): Order {
   const orderLineItem = transaction.orderLineItems[0];
   const allFees = [...orderLineItem.fees, ...orderLineItem.marketplaceFees];
-  const totalFees = allFees.reduce((sum: number, fee: any) => sum + Math.abs(fee.amount), 0);
+  const totalFees = allFees.reduce((sum: number, fee: EbayFee) => sum + Math.abs(fee.amount), 0);
   const salePrice = parseFloat(orderLineItem.totalAmount.value);
   const estimatedPurchasePrice = salePrice * 0.6; // 추정 매입가
   const profit = salePrice - totalFees - estimatedPurchasePrice;
@@ -107,8 +107,8 @@ function convertEbayTransactionToOrder(transaction: any, index: number): Order {
   
   // 프로모션 절약 계산
   const promotionSavings = allFees
-    .filter((fee: any) => fee.feeMemo.includes('할인') || fee.feeMemo.includes('50%'))
-    .reduce((sum: number, fee: any) => sum + Math.abs(fee.amount), 0);
+    .filter((fee: EbayFee) => fee.feeMemo.includes('할인') || fee.feeMemo.includes('50%'))
+    .reduce((sum: number, fee: EbayFee) => sum + Math.abs(fee.amount), 0);
 
   return {
     id: (index + 1).toString(),
@@ -120,12 +120,12 @@ function convertEbayTransactionToOrder(transaction: any, index: number): Order {
     salePrice,
     purchasePrice: estimatedPurchasePrice,
     fees: {
-      platformFee: allFees.filter((f: any) => f.feeType.includes('FINAL_VALUE')).reduce((sum: number, fee: any) => sum + Math.abs(fee.amount), 0),
-      paymentFee: allFees.filter((f: any) => f.feeType === 'PAYMENT_PROCESSING_FEE').reduce((sum: number, fee: any) => sum + Math.abs(fee.amount), 0),
-      shippingFee: allFees.filter((f: any) => f.feeType.includes('SHIPPING')).reduce((sum: number, fee: any) => sum + Math.abs(fee.amount), 0),
-      promotionFee: allFees.filter((f: any) => f.feeType.includes('AD_FEE') || f.feeType.includes('PROMOTED')).reduce((sum: number, fee: any) => sum + Math.abs(fee.amount), 0),
-      tax: allFees.filter((f: any) => f.feeType.includes('TAX')).reduce((sum: number, fee: any) => sum + Math.abs(fee.amount), 0),
-      others: allFees.filter((f: any) => !['FINAL_VALUE_FEE', 'PAYMENT_PROCESSING_FEE', 'AD_FEE', 'PROMOTED_LISTINGS_FEE'].some(type => f.feeType.includes(type))).reduce((sum: number, fee: any) => sum + Math.abs(fee.amount), 0)
+      platformFee: allFees.filter((f: EbayFee) => f.feeType.includes('FINAL_VALUE')).reduce((sum: number, fee: EbayFee) => sum + Math.abs(fee.amount), 0),
+      paymentFee: allFees.filter((f: EbayFee) => f.feeType === 'PAYMENT_PROCESSING_FEE').reduce((sum: number, fee: EbayFee) => sum + Math.abs(fee.amount), 0),
+      shippingFee: allFees.filter((f: EbayFee) => f.feeType.includes('SHIPPING')).reduce((sum: number, fee: EbayFee) => sum + Math.abs(fee.amount), 0),
+      promotionFee: allFees.filter((f: EbayFee) => f.feeType.includes('AD_FEE') || f.feeType.includes('PROMOTED')).reduce((sum: number, fee: EbayFee) => sum + Math.abs(fee.amount), 0),
+      tax: allFees.filter((f: EbayFee) => f.feeType.includes('TAX')).reduce((sum: number, fee: EbayFee) => sum + Math.abs(fee.amount), 0),
+      others: allFees.filter((f: EbayFee) => !['FINAL_VALUE_FEE', 'PAYMENT_PROCESSING_FEE', 'AD_FEE', 'PROMOTED_LISTINGS_FEE'].some(type => f.feeType.includes(type))).reduce((sum: number, fee: EbayFee) => sum + Math.abs(fee.amount), 0)
     },
     profit,
     marginRate,

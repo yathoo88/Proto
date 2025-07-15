@@ -58,7 +58,7 @@ export function useRealTimePricing(
         targetMargin: debouncedTargetMargin,
         priceChange,
         marginChange,
-        feeCalculation: optimalPricing.feeCalculation
+        feeCalculation: optimalPricing.profitAnalysis.feeCalculation
       };
     });
   }, [recommendations, debouncedTargetMargin, riskLevel]);

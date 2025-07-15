@@ -151,7 +151,7 @@ export function calculateListingFees(
   storeLevel: EbayStoreLevel = CURRENT_USER_STORE.storeLevel
 ): ListingFeeCalculationResult {
   const storeInfo = EBAY_STORE_LEVELS[storeLevel];
-  const freeListingsUsed = Math.min(listingCount, storeInfo.freeListings);
+  // const freeListingsUsed = Math.min(listingCount, storeInfo.freeListings);
   const paidListings = Math.max(listingCount - storeInfo.freeListings, 0);
   
   const insertionFee = paidListings * storeInfo.additionalListingFee;
@@ -283,7 +283,7 @@ export function calculateMonthlyFeeSummary(
 ): {
   totalSales: number;
   totalFees: number;
-  feeBreakdown: Record<EbayFeeType, number>;
+  feeBreakdown: Partial<Record<EbayFeeType, number>>;
   storeSubscriptionFee: number;
   totalSavings: number;
 } {
@@ -292,7 +292,7 @@ export function calculateMonthlyFeeSummary(
   const totalFees = allFees.reduce((sum, fee) => sum + fee.amount, 0);
   
   // 수수료 유형별 분류
-  const feeBreakdown: Record<EbayFeeType, number> = {
+  const feeBreakdown: Partial<Record<EbayFeeType, number>> = {
     FINAL_VALUE_FEE: 0,
     INSERTION_FEE: 0,
     PAYMENT_PROCESSING_FEE: 0,
@@ -301,18 +301,17 @@ export function calculateMonthlyFeeSummary(
     INTERNATIONAL_FEE: 0,
     SUBTITLE_FEE: 0,
     LISTING_UPGRADE_FEE: 0,
-    MANAGED_PAYMENTS_FEE: 0,
     BELOW_STANDARD_FEE: 0
   };
   
   allFees.forEach(fee => {
-    feeBreakdown[fee.feeType] += fee.amount;
+    feeBreakdown[fee.feeType] = (feeBreakdown[fee.feeType] || 0) + fee.amount;
   });
   
   // 스토어 구독료 추가
   const storeInfo = EBAY_STORE_LEVELS[storeLevel];
   const storeSubscriptionFee = storeInfo.monthlyFee;
-  feeBreakdown.STORE_SUBSCRIPTION_FEE += storeSubscriptionFee;
+  feeBreakdown.STORE_SUBSCRIPTION_FEE = (feeBreakdown.STORE_SUBSCRIPTION_FEE || 0) + storeSubscriptionFee;
   
   // 프로모션으로 절약한 금액 계산
   const totalSavings = transactions.reduce((sum, t) => {
