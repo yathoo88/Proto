@@ -1,103 +1,149 @@
-import Image from "next/image";
+import { MetricCard } from "@/components/dashboard/metric-card";
+import { RevenueChart } from "@/components/dashboard/revenue-chart";
+import { TopProductsTable } from "@/components/dashboard/top-products-table";
+import { RecentOrdersList } from "@/components/dashboard/recent-orders-list";
+import { GlassCard } from "@/components/ui/glass-card";
+import { Button } from "@/components/ui/button";
+import { 
+  DollarSign, 
+  TrendingUp, 
+  Target, 
+  Package, 
+  AlertTriangle,
+  RefreshCw,
+  Download 
+} from "lucide-react";
+import {
+  sampleDashboardMetrics,
+  sampleChartData,
+  sampleProducts,
+  sampleOrders
+} from "@/data/mock-data";
 
-export default function Home() {
+export default function Dashboard() {
+  const metrics = sampleDashboardMetrics;
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">대시보드</h1>
+          <p className="text-muted-foreground">멀티채널 판매 현황을 한눈에 확인하세요</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            리포트 다운로드
+          </Button>
+          <Button size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            새로고침
+          </Button>
+        </div>
+      </div>
+
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          title="총 매출"
+          value={`$${metrics.totalRevenue.toLocaleString()}`}
+          icon={<DollarSign className="h-4 w-4" />}
+          trend="+12.5%"
+          trendType="positive"
+          className="backdrop-blur-xl bg-white/60 border-white/20"
+        />
+        <MetricCard
+          title="순이익"
+          value={`$${metrics.totalProfit.toLocaleString()}`}
+          icon={<TrendingUp className="h-4 w-4" />}
+          trend="+8.2%"
+          trendType="positive"
+          className="backdrop-blur-xl bg-white/60 border-white/20"
+        />
+        <MetricCard
+          title="평균 마진율"
+          value={`${metrics.avgMarginRate}%`}
+          icon={<Target className="h-4 w-4" />}
+          trend="+2.1%"
+          trendType="positive"
+          className="backdrop-blur-xl bg-white/60 border-white/20"
+        />
+        <MetricCard
+          title="총 주문수"
+          value={metrics.totalOrders.toLocaleString()}
+          icon={<Package className="h-4 w-4" />}
+          trend="+15.3%"
+          trendType="positive"
+          className="backdrop-blur-xl bg-white/60 border-white/20"
+        />
+      </div>
+
+      {/* Bento Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Revenue Chart - Takes 2 columns */}
+        <div className="lg:col-span-2">
+          <GlassCard className="backdrop-blur-xl bg-white/60 border-white/20">
+            <RevenueChart data={sampleChartData} />
+          </GlassCard>
+        </div>
+
+        {/* AI 추천 현황 */}
+        <GlassCard className="backdrop-blur-xl bg-white/60 border-white/20 p-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">AI 가격 추천</h3>
+              <div className="text-2xl font-bold text-blue-600">
+                {metrics.aiRecommendations}개
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>예상 수익 증가</span>
+                <span className="font-semibold text-green-600">+15.2%</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>대기중인 오퍼</span>
+                <span className="font-semibold">{metrics.pendingOffers}개</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>낮은 재고 알림</span>
+                <span className="font-semibold text-orange-600">{metrics.lowStockItems}개</span>
+              </div>
+            </div>
+            <Button className="w-full bg-gradient-to-r from-blue-500 to-purple-600">
+              가격 최적화 보기
+            </Button>
+          </div>
+        </GlassCard>
+      </div>
+
+      {/* Bottom Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <GlassCard className="backdrop-blur-xl bg-white/60 border-white/20">
+          <TopProductsTable products={sampleProducts} />
+        </GlassCard>
+        
+        <GlassCard className="backdrop-blur-xl bg-white/60 border-white/20">
+          <RecentOrdersList orders={sampleOrders} />
+        </GlassCard>
+      </div>
+
+      {/* Alert Section */}
+      <GlassCard className="backdrop-blur-xl bg-orange-50/60 border-orange-200/30 p-4">
+        <div className="flex items-center space-x-3">
+          <AlertTriangle className="h-5 w-5 text-orange-600" />
+          <div>
+            <h4 className="font-medium text-orange-800">재고 부족 알림</h4>
+            <p className="text-sm text-orange-600">
+              {metrics.lowStockItems}개 상품의 재고가 부족합니다. 재주문을 고려해보세요.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" className="ml-auto">
+            확인하기
+          </Button>
+        </div>
+      </GlassCard>
     </div>
   );
 }
