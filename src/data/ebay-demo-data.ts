@@ -3,18 +3,49 @@
  * 실제 eBay Finances API, Inventory API 응답 구조를 모방
  */
 
-// eBay Fee Types (실제 API에서 사용되는 수수료 유형)
+// eBay Fee Types (실제 eBay Finances API에서 사용되는 수수료 유형)
 export type EbayFeeType = 
-  | 'FINAL_VALUE_FEE'           // 최종 판매 수수료 (12.35%, 2025년 50% 할인 적용)
-  | 'INSERTION_FEE'             // 등록 수수료
-  | 'PAYMENT_PROCESSING_FEE'    // 결제 처리 수수료 (2.9% + $0.30)
-  | 'STORE_SUBSCRIPTION_FEE'    // 스토어 구독료
-  | 'PROMOTED_LISTINGS_FEE'     // 프로모션 리스팅 수수료
-  | 'INTERNATIONAL_FEE'         // 해외 거래 수수료
-  | 'SUBTITLE_FEE'              // 부제목 수수료
-  | 'LISTING_UPGRADE_FEE'       // 리스팅 업그레이드 수수료
-  | 'MANAGED_PAYMENTS_FEE'      // 관리형 결제 수수료
-  | 'BELOW_STANDARD_FEE';       // 기준 미달 수수료
+  // === 핵심 거래 수수료 ===
+  | 'FINAL_VALUE_FEE'                    // 최종 판매 수수료 (12.7%-14.9%, 베이직 스토어+ 50% 할인)
+  | 'FINAL_VALUE_FEE_FIXED_PER_ORDER'    // 주문당 고정 수수료 ($0.30/$0.40)
+  | 'FINAL_VALUE_SHIPPING_FEE'           // 배송비 기반 최종 판매 수수료
+  | 'PAYMENT_PROCESSING_FEE'             // 결제 처리 수수료 (2.7% + $0.25)
+  | 'INTERNATIONAL_FEE'                  // 국제 거래 수수료 (1.0%-1.7%)
+  
+  // === 리스팅 관련 수수료 ===
+  | 'INSERTION_FEE'                      // 리스팅 등록 수수료 ($0.35)
+  | 'BOLD_FEE'                          // 굵은 글씨 업그레이드 수수료
+  | 'GALLERY_FEE'                       // 갤러리 등록 수수료
+  | 'FEATURED_GALLERY_FEE'              // 특별 갤러리 수수료
+  | 'SUBTITLE_FEE'                      // 부제목 수수료
+  | 'LISTING_UPGRADE_FEE'               // 리스팅 업그레이드 수수료
+  
+  // === 성과 기반 수수료 ===
+  | 'BELOW_STANDARD_FEE'                // 기준 미달 셀러 추가 수수료
+  | 'BELOW_STANDARD_SHIPPING_FEE'       // 기준 미달 셀러 배송 수수료
+  | 'HIGH_ITEM_NOT_AS_DESCRIBED_FEE'    // 상품 불일치 높은 셀러 수수료
+  | 'HIGH_ITEM_NOT_AS_DESCRIBED_SHIPPING_FEE' // 상품 불일치 배송 수수료
+  
+  // === 마케팅 및 광고 ===
+  | 'AD_FEE'                           // 프로모티드 리스팅 광고비
+  | 'PROMOTED_LISTINGS_FEE'            // 프로모션 리스팅 수수료
+  
+  // === 운영 및 서비스 수수료 ===
+  | 'STORE_SUBSCRIPTION_FEE'           // 스토어 구독료
+  | 'EXPRESS_PAYOUT_FEE'               // 빠른 지급 수수료 (직불카드)
+  | 'BANK_PAYOUT_FEE'                  // 은행 송금 수수료
+  | 'REGULATORY_OPERATING_FEE'         // 규제 운영 수수료
+  
+  // === 세금 및 원천징수 ===
+  | 'TAX_DEDUCTION_AT_SOURCE'          // 원천 세금 공제
+  | 'INCOME_TAX_WITHHOLDING'           // 소득세 원천징수
+  | 'VAT_WITHHOLDING'                  // 부가세 원천징수
+  
+  // === 분쟁 및 기타 ===
+  | 'PAYMENT_DISPUTE_FEE'              // 결제 분쟁 수수료
+  | 'FINANCE_FEE'                      // 미납 월 청구서 금융 수수료
+  | 'CHARITY_DONATION'                 // 자선 기부
+  | 'OTHER_FEES';                      // 기타 수수료
 
 // eBay Store 구독 레벨
 export type EbayStoreLevel = 'NONE' | 'BASIC' | 'PREMIUM' | 'ANCHOR' | 'ENTERPRISE';
@@ -355,18 +386,47 @@ export const DEMO_EBAY_TRANSACTIONS: EbayTransaction[] = [
             amount: 74.28,
             currency: 'USD',
             feeJurisdiction: 'US',
-            feeMemo: '최종 판매 수수료 (50% 할인 적용)',
+            feeMemo: '최종 판매 수수료 (베이직 스토어 50% 할인 적용)',
             feeType: 'FINAL_VALUE_FEE'
           },
           {
-            amount: 35.10,
+            amount: 0.40,
             currency: 'USD',
             feeJurisdiction: 'US',
-            feeMemo: '결제 처리 수수료',
+            feeMemo: '주문당 고정 수수료',
+            feeType: 'FINAL_VALUE_FEE_FIXED_PER_ORDER'
+          },
+          {
+            amount: 3.24,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '배송비 기반 최종 판매 수수료',
+            feeType: 'FINAL_VALUE_SHIPPING_FEE'
+          },
+          {
+            amount: 32.65,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '결제 처리 수수료 (2.7% + $0.25)',
             feeType: 'PAYMENT_PROCESSING_FEE'
+          },
+          {
+            amount: 23.99,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '프로모티드 리스팅 광고비',
+            feeType: 'AD_FEE'
           }
         ],
-        marketplaceFees: [],
+        marketplaceFees: [
+          {
+            amount: 0.35,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '리스팅 등록 수수료',
+            feeType: 'INSERTION_FEE'
+          }
+        ],
         totalAmount: {
           currency: 'USD',
           value: '1199.99'
@@ -375,7 +435,7 @@ export const DEMO_EBAY_TRANSACTIONS: EbayTransaction[] = [
     ],
     totalFeeAmount: {
       currency: 'USD',
-      value: '109.38'
+      value: '134.91'
     },
     totalFeeBasisAmount: {
       currency: 'USD',
@@ -387,7 +447,7 @@ export const DEMO_EBAY_TRANSACTIONS: EbayTransaction[] = [
     transactionDate: '2025-01-14T14:22:00.000Z',
     transactionType: 'SALE',
     transactionStatus: 'FUNDS_PROCESSING',
-    transactionMemo: 'Nike Air Force 1 판매',
+    transactionMemo: 'Nike Air Force 1 판매 (국제 배송)',
     orderLineItems: [
       {
         itemId: '23456789012',
@@ -398,18 +458,47 @@ export const DEMO_EBAY_TRANSACTIONS: EbayTransaction[] = [
             amount: 5.57,
             currency: 'USD',
             feeJurisdiction: 'US',
-            feeMemo: '최종 판매 수수료 (50% 할인 적용)',
+            feeMemo: '최종 판매 수수료 (베이직 스토어 50% 할인 적용)',
             feeType: 'FINAL_VALUE_FEE'
           },
           {
-            amount: 2.91,
+            amount: 0.30,
             currency: 'USD',
             feeJurisdiction: 'US',
-            feeMemo: '결제 처리 수수료',
+            feeMemo: '주문당 고정 수수료 ($10 이하)',
+            feeType: 'FINAL_VALUE_FEE_FIXED_PER_ORDER'
+          },
+          {
+            amount: 2.68,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '결제 처리 수수료 (2.7% + $0.25)',
             feeType: 'PAYMENT_PROCESSING_FEE'
+          },
+          {
+            amount: 1.53,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '국제 거래 수수료 (1.7%)',
+            feeType: 'INTERNATIONAL_FEE'
           }
         ],
-        marketplaceFees: [],
+        marketplaceFees: [
+          {
+            amount: 0.35,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '리스팅 등록 수수료',
+            feeType: 'INSERTION_FEE'
+          },
+          {
+            amount: 2.99,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '부제목 수수료',
+            feeType: 'SUBTITLE_FEE'
+          }
+        ],
         totalAmount: {
           currency: 'USD',
           value: '89.99'
@@ -418,7 +507,7 @@ export const DEMO_EBAY_TRANSACTIONS: EbayTransaction[] = [
     ],
     totalFeeAmount: {
       currency: 'USD',
-      value: '8.48'
+      value: '13.42'
     },
     totalFeeBasisAmount: {
       currency: 'USD',
@@ -454,6 +543,263 @@ export const DEMO_EBAY_TRANSACTIONS: EbayTransaction[] = [
     totalFeeAmount: {
       currency: 'USD',
       value: '27.95'
+    },
+    totalFeeBasisAmount: {
+      currency: 'USD',
+      value: '0'
+    }
+  },
+  {
+    transactionId: 'TXN_004_2025',
+    transactionDate: '2025-01-12T08:30:00.000Z',
+    transactionType: 'REFUND',
+    transactionStatus: 'FUNDS_PROCESSING',
+    transactionMemo: 'Dyson V15 Detect 부분 환불',
+    orderLineItems: [
+      {
+        itemId: '34567890123',
+        transactionId: 'TXN_004_2025',
+        legacyOrderId: 'ORDER_003_2025',
+        fees: [
+          {
+            amount: -40.22,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '최종 판매 수수료 환불',
+            feeType: 'FINAL_VALUE_FEE'
+          },
+          {
+            amount: -0.40,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '주문당 고정 수수료 환불',
+            feeType: 'FINAL_VALUE_FEE_FIXED_PER_ORDER'
+          },
+          {
+            amount: 2.50,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '결제 분쟁 처리 수수료',
+            feeType: 'PAYMENT_DISPUTE_FEE'
+          }
+        ],
+        marketplaceFees: [],
+        totalAmount: {
+          currency: 'USD',
+          value: '-649.99'
+        }
+      }
+    ],
+    totalFeeAmount: {
+      currency: 'USD',
+      value: '-38.12'
+    },
+    totalFeeBasisAmount: {
+      currency: 'USD',
+      value: '649.99'
+    }
+  },
+  {
+    transactionId: 'TXN_005_2025',
+    transactionDate: '2025-01-11T15:45:00.000Z',
+    transactionType: 'SALE',
+    transactionStatus: 'FUNDS_ON_HOLD',
+    transactionMemo: '기준 미달 셀러 - 추가 수수료 적용',
+    orderLineItems: [
+      {
+        itemId: '45678901234',
+        transactionId: 'TXN_005_2025',
+        legacyOrderId: 'ORDER_004_2025',
+        fees: [
+          {
+            amount: 15.98,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '최종 판매 수수료 (일반 요율)',
+            feeType: 'FINAL_VALUE_FEE'
+          },
+          {
+            amount: 0.40,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '주문당 고정 수수료',
+            feeType: 'FINAL_VALUE_FEE_FIXED_PER_ORDER'
+          },
+          {
+            amount: 6.98,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '결제 처리 수수료',
+            feeType: 'PAYMENT_PROCESSING_FEE'
+          },
+          {
+            amount: 25.99,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '기준 미달 셀러 추가 수수료 (10%)',
+            feeType: 'BELOW_STANDARD_FEE'
+          },
+          {
+            amount: 2.60,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '기준 미달 배송 수수료',
+            feeType: 'BELOW_STANDARD_SHIPPING_FEE'
+          }
+        ],
+        marketplaceFees: [
+          {
+            amount: 0.35,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '리스팅 등록 수수료',
+            feeType: 'INSERTION_FEE'
+          },
+          {
+            amount: 4.95,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '갤러리 특별 등록 수수료',
+            feeType: 'FEATURED_GALLERY_FEE'
+          }
+        ],
+        totalAmount: {
+          currency: 'USD',
+          value: '259.99'
+        }
+      }
+    ],
+    totalFeeAmount: {
+      currency: 'USD',
+      value: '57.25'
+    },
+    totalFeeBasisAmount: {
+      currency: 'USD',
+      value: '259.99'
+    }
+  },
+  {
+    transactionId: 'TXN_006_2025',
+    transactionDate: '2025-01-10T11:20:00.000Z',
+    transactionType: 'SALE',
+    transactionStatus: 'FUNDS_AVAILABLE_FOR_PAYOUT',
+    transactionMemo: '고가 명품 시계 판매 - 높은 상품 불일치 셀러',
+    orderLineItems: [
+      {
+        itemId: '56789012345',
+        transactionId: 'TXN_006_2025',
+        legacyOrderId: 'ORDER_005_2025',
+        fees: [
+          {
+            amount: 372.25,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '최종 판매 수수료 (14.9%)',
+            feeType: 'FINAL_VALUE_FEE'
+          },
+          {
+            amount: 0.40,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '주문당 고정 수수료',
+            feeType: 'FINAL_VALUE_FEE_FIXED_PER_ORDER'
+          },
+          {
+            amount: 67.57,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '결제 처리 수수료',
+            feeType: 'PAYMENT_PROCESSING_FEE'
+          },
+          {
+            amount: 125.00,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '상품 설명 불일치 높은 셀러 수수료 (5%)',
+            feeType: 'HIGH_ITEM_NOT_AS_DESCRIBED_FEE'
+          },
+          {
+            amount: 12.50,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '상품 불일치 배송 수수료',
+            feeType: 'HIGH_ITEM_NOT_AS_DESCRIBED_SHIPPING_FEE'
+          },
+          {
+            amount: 50.00,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '규제 운영 수수료 (고가 상품)',
+            feeType: 'REGULATORY_OPERATING_FEE'
+          }
+        ],
+        marketplaceFees: [
+          {
+            amount: 0.35,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '리스팅 등록 수수료',
+            feeType: 'INSERTION_FEE'
+          },
+          {
+            amount: 19.95,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '굵은 글씨 강조 수수료',
+            feeType: 'BOLD_FEE'
+          },
+          {
+            amount: 2.99,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '부제목 수수료',
+            feeType: 'SUBTITLE_FEE'
+          }
+        ],
+        totalAmount: {
+          currency: 'USD',
+          value: '2499.99'
+        }
+      }
+    ],
+    totalFeeAmount: {
+      currency: 'USD',
+      value: '651.01'
+    },
+    totalFeeBasisAmount: {
+      currency: 'USD',
+      value: '2499.99'
+    }
+  },
+  {
+    transactionId: 'TXN_007_2025',
+    transactionDate: '2025-01-09T09:15:00.000Z',
+    transactionType: 'NON_SALE_CHARGE',
+    transactionStatus: 'FUNDS_AVAILABLE_FOR_PAYOUT',
+    transactionMemo: '빠른 지급 요청 수수료',
+    orderLineItems: [
+      {
+        itemId: 'EXPRESS_PAYOUT_REQUEST',
+        transactionId: 'TXN_007_2025',
+        fees: [
+          {
+            amount: 1.50,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '직불카드 빠른 지급 수수료',
+            feeType: 'EXPRESS_PAYOUT_FEE'
+          }
+        ],
+        marketplaceFees: [],
+        totalAmount: {
+          currency: 'USD',
+          value: '-1.50'
+        }
+      }
+    ],
+    totalFeeAmount: {
+      currency: 'USD',
+      value: '1.50'
     },
     totalFeeBasisAmount: {
       currency: 'USD',

@@ -18,6 +18,33 @@ export interface Product {
   createdAt: string;
 }
 
+// eBay API 구조를 기반으로 한 수수료 정보
+export interface EbayFee {
+  amount: number;
+  currency: string;
+  feeJurisdiction: string;
+  feeMemo: string;
+  feeType: string; // EbayFeeType from ebay-demo-data.ts
+}
+
+// eBay Order Line Item (Finances API 구조 기반)
+export interface EbayOrderLineItem {
+  itemId: string;
+  transactionId: string;
+  legacyOrderId?: string;
+  fees: EbayFee[];
+  marketplaceFees: EbayFee[];
+  totalAmount: {
+    currency: string;
+    value: string;
+  };
+  productName?: string;
+  sku?: string;
+  quantity?: number;
+  purchasePrice?: number;
+}
+
+// 기존 OrderFees - 하위 호환성을 위해 유지
 export interface OrderFees {
   platformFee: number; // 플랫폼 수수료
   paymentFee: number; // 결제 수수료
@@ -27,6 +54,29 @@ export interface OrderFees {
   others: number; // 기타
 }
 
+// eBay Transaction 기반의 주문 정보
+export interface EbayOrder {
+  transactionId: string;
+  transactionDate: string;
+  transactionType: 'SALE' | 'REFUND' | 'CREDIT' | 'DISPUTE' | 'NON_SALE_CHARGE' | 'SHIPPING_LABEL';
+  transactionStatus: 'FUNDS_PROCESSING' | 'FUNDS_AVAILABLE_FOR_PAYOUT' | 'FUNDS_ON_HOLD' | 'PAID';
+  transactionMemo: string;
+  orderLineItems: EbayOrderLineItem[];
+  totalFeeAmount: {
+    currency: string;
+    value: string;
+  };
+  totalFeeBasisAmount: {
+    currency: string;
+    value: string;
+  };
+  // 계산된 필드들
+  profit?: number;
+  marginRate?: number;
+  promotionSavings?: number;
+}
+
+// 기존 Order 인터페이스 - 하위 호환성을 위해 유지하되 eBay 필드 추가
 export interface Order {
   id: string;
   orderNumber: string;
@@ -42,6 +92,10 @@ export interface Order {
   orderDate: string;
   shippingDate?: string;
   status: 'pending' | 'shipped' | 'delivered' | 'refunded';
+  // eBay API 확장 필드들
+  ebayTransaction?: EbayOrder;
+  detailedFees?: EbayFee[];
+  promotionSavings?: number;
 }
 
 export interface CustomerOffer {

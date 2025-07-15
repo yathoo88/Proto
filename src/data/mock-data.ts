@@ -1,4 +1,5 @@
-import { Product, Order, CustomerOffer, PricingRecommendation, InventoryAlert, DashboardMetrics, ChartData } from '@/lib/types';
+import { Product, Order, EbayOrder, EbayFee, CustomerOffer, PricingRecommendation, InventoryAlert, DashboardMetrics, ChartData } from '@/lib/types';
+import { DEMO_EBAY_TRANSACTIONS } from './ebay-demo-data';
 
 // 더미 상품 데이터
 export const sampleProducts: Product[] = [
@@ -94,123 +95,77 @@ export const sampleProducts: Product[] = [
   }
 ];
 
-// 더미 주문 데이터
-export const sampleOrders: Order[] = [
+// eBay 거래 데이터를 주문 형태로 변환하는 헬퍼 함수
+function convertEbayTransactionToOrder(transaction: any, index: number): Order {
+  const orderLineItem = transaction.orderLineItems[0];
+  const allFees = [...orderLineItem.fees, ...orderLineItem.marketplaceFees];
+  const totalFees = allFees.reduce((sum: number, fee: any) => sum + Math.abs(fee.amount), 0);
+  const salePrice = parseFloat(orderLineItem.totalAmount.value);
+  const estimatedPurchasePrice = salePrice * 0.6; // 추정 매입가
+  const profit = salePrice - totalFees - estimatedPurchasePrice;
+  const marginRate = salePrice > 0 ? ((profit / salePrice) * 100) : 0;
+  
+  // 프로모션 절약 계산
+  const promotionSavings = allFees
+    .filter((fee: any) => fee.feeMemo.includes('할인') || fee.feeMemo.includes('50%'))
+    .reduce((sum: number, fee: any) => sum + Math.abs(fee.amount), 0);
+
+  return {
+    id: (index + 1).toString(),
+    orderNumber: orderLineItem.legacyOrderId || `TXN-${transaction.transactionId}`,
+    platform: "ebay",
+    sku: `SKU-${orderLineItem.itemId.slice(-6)}`,
+    productName: transaction.transactionMemo,
+    quantity: 1,
+    salePrice,
+    purchasePrice: estimatedPurchasePrice,
+    fees: {
+      platformFee: allFees.filter((f: any) => f.feeType.includes('FINAL_VALUE')).reduce((sum: number, fee: any) => sum + Math.abs(fee.amount), 0),
+      paymentFee: allFees.filter((f: any) => f.feeType === 'PAYMENT_PROCESSING_FEE').reduce((sum: number, fee: any) => sum + Math.abs(fee.amount), 0),
+      shippingFee: allFees.filter((f: any) => f.feeType.includes('SHIPPING')).reduce((sum: number, fee: any) => sum + Math.abs(fee.amount), 0),
+      promotionFee: allFees.filter((f: any) => f.feeType.includes('AD_FEE') || f.feeType.includes('PROMOTED')).reduce((sum: number, fee: any) => sum + Math.abs(fee.amount), 0),
+      tax: allFees.filter((f: any) => f.feeType.includes('TAX')).reduce((sum: number, fee: any) => sum + Math.abs(fee.amount), 0),
+      others: allFees.filter((f: any) => !['FINAL_VALUE_FEE', 'PAYMENT_PROCESSING_FEE', 'AD_FEE', 'PROMOTED_LISTINGS_FEE'].some(type => f.feeType.includes(type))).reduce((sum: number, fee: any) => sum + Math.abs(fee.amount), 0)
+    },
+    profit,
+    marginRate,
+    orderDate: transaction.transactionDate,
+    shippingDate: transaction.transactionStatus === 'FUNDS_AVAILABLE_FOR_PAYOUT' ? new Date(Date.now() - 86400000).toISOString() : undefined,
+    status: transaction.transactionStatus === 'FUNDS_AVAILABLE_FOR_PAYOUT' ? 'delivered' : 
+            transaction.transactionStatus === 'FUNDS_PROCESSING' ? 'shipped' :
+            transaction.transactionStatus === 'FUNDS_ON_HOLD' ? 'pending' : 'pending',
+    // eBay API 확장 데이터
+    ebayTransaction: transaction,
+    detailedFees: allFees,
+    promotionSavings
+  };
+}
+
+// 더미 주문 데이터 (eBay 거래 데이터 기반)
+export const sampleOrders: Order[] = DEMO_EBAY_TRANSACTIONS
+  .filter(transaction => transaction.transactionType === 'SALE')
+  .map((transaction, index) => convertEbayTransactionToOrder(transaction, index));
+
+// 더미 고객 오퍼 데이터
+export const sampleOffers: CustomerOffer[] = [
   {
     id: "1",
-    orderNumber: "EB-2024-001234",
-    platform: "ebay",
     sku: "JCP-SHIRT-001",
     productName: "JCPenney Men's Cotton Shirt - Blue",
-    quantity: 2,
-    salePrice: 25.99,
-    purchasePrice: 12.50,
-    fees: {
-      platformFee: 1.61, // 12.35% * 50% 할인 적용
-      paymentFee: 1.05, // 2.9% + $0.30
-      shippingFee: 0,
-      promotionFee: 0,
-      tax: 0,
-      others: 0
-    },
-    profit: 22.33,
-    marginRate: 85.9,
-    orderDate: "2024-07-15T10:30:00Z",
-    shippingDate: "2024-07-16T14:20:00Z",
-    status: "shipped"
-  },
-  {
-    id: "2",
-    orderNumber: "EB-2024-005678",
-    platform: "ebay",
-    sku: "TGT-PANTS-002",
-    productName: "Target Women's Jeans - Black",
-    quantity: 1,
-    salePrice: 35.99,
-    purchasePrice: 18.75,
-    fees: {
-      platformFee: 2.23, // 12.35% * 50% 할인 적용
-      paymentFee: 1.34, // 2.9% + $0.30
-      shippingFee: 0,
-      promotionFee: 0,
-      tax: 0,
-      others: 0
-    },
-    profit: 32.42,
-    marginRate: 90.1,
-    orderDate: "2024-07-14T15:45:00Z",
-    status: "delivered"
-  },
-  {
-    id: "3",
-    orderNumber: "EB-2024-009012",
-    platform: "ebay",
-    sku: "WMT-SHOES-003",
-    productName: "Walmart Sneakers - White",
-    quantity: 1,
-    salePrice: 45.99,
-    purchasePrice: 22.00,
-    fees: {
-      platformFee: 2.84, // 12.35% * 50% 할인 적용
-      paymentFee: 1.63, // 2.9% + $0.30
-      shippingFee: 3.99,
-      promotionFee: 0,
-      tax: 0,
-      others: 0
-    },
-    profit: 15.53,
-    marginRate: 33.8,
-    orderDate: "2024-07-13T09:15:00Z",
-    status: "pending"
-  },
-  {
-    id: "4",
-    orderNumber: "EB-2024-003456",
-    platform: "ebay",
-    sku: "MAC-ELECT-004",
-    productName: "Macy's Bluetooth Headphones",
-    quantity: 1,
-    salePrice: 79.99,
-    purchasePrice: 35.00,
-    fees: {
-      platformFee: 4.95, // 12.35% * 50% 할인 적용
-      paymentFee: 2.62, // 2.9% + $0.30
-      shippingFee: 0,
-      promotionFee: 0,
-      tax: 0,
-      others: 0
-    },
-    profit: 37.42,
-    marginRate: 46.8,
-    orderDate: "2024-07-12T16:30:00Z",
-    status: "delivered"
-  },
-  {
-    id: "5",
-    orderNumber: "EB-2024-007890",
-    platform: "ebay",
-    sku: "COST-HOME-005",
-    productName: "Costco Kitchen Set",
-    quantity: 1,
-    salePrice: 89.99,
-    purchasePrice: 45.00,
-    fees: {
-      platformFee: 5.57, // 12.35% * 50% 할인 적용
-      paymentFee: 2.91, // 2.9% + $0.30
-      shippingFee: 0,
-      promotionFee: 0,
-      tax: 0,
-      others: 0
-    },
-    profit: 36.51,
-    marginRate: 40.6,
-    orderDate: "2024-07-11T11:00:00Z",
-    status: "shipped"
+    originalPrice: 25.99,
+    offerPrice: 22.50,
+    customerName: "김고객",
+    message: "3개 구매할게요. 할인 가능하신가요?",
+    date: "2024-07-15T14:20:00Z",
+    status: "pending",
+    responseDeadline: "2024-07-17T14:20:00Z",
+    aiRecommendation: "accept",
+    profitImpact: -3.49
   }
 ];
 
 // 더미 고객 오퍼 데이터
-export const sampleOffers: CustomerOffer[] = [
+export const sampleCustomerOffers: CustomerOffer[] = [
   {
     id: "1",
     sku: "JCP-SHIRT-001",

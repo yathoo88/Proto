@@ -4,6 +4,7 @@ import { TopProductsTable } from "@/components/dashboard/top-products-table";
 import { RecentOrdersList } from "@/components/dashboard/recent-orders-list";
 import { EbayFeeDashboard } from "@/components/dashboard/ebay-fee-dashboard";
 import { GlassCard } from "@/components/ui/glass-card";
+import { LinkButton } from "@/components/ui/link-button";
 import { Button } from "@/components/ui/button";
 import { 
   DollarSign, 
@@ -125,9 +126,9 @@ export default function Dashboard() {
                 <span className="font-semibold text-green-600">${DEMO_MONTHLY_FEE_SUMMARY[0].savingsFromPromotions.toLocaleString()}</span>
               </div>
             </div>
-            <Button className="w-full bg-gradient-to-r from-purple-500 to-blue-600" onClick={() => window.location.href = '/store'}>
+            <LinkButton href="/store" className="w-full bg-gradient-to-r from-purple-500 to-blue-600">
               스토어 관리
-            </Button>
+            </LinkButton>
           </div>
         </GlassCard>
       </div>

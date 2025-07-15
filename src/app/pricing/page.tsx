@@ -3,22 +3,39 @@
 import { useState } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
+import { NumberInput } from "@/components/ui/number-input";
+import { MarginPresets } from "@/components/ui/margin-presets";
+import { ProfitBreakdown } from "@/components/pricing/profit-breakdown";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
-import { RefreshCw, TrendingUp, Target, BarChart3, Zap, Loader2 } from "lucide-react";
-import { samplePricingRecommendations } from "@/data/mock-data";
+import { Badge } from "@/components/ui/badge";
+import { 
+  RefreshCw, 
+  TrendingUp, 
+  Target, 
+  BarChart3, 
+  Zap, 
+  Loader2,
+  Calculator,
+  ChevronUp
+} from "lucide-react";
+import { samplePricingRecommendations, sampleProducts } from "@/data/mock-data";
+import { useRealTimePricing } from "@/hooks/use-real-time-pricing";
 import { PricingRecommendation } from "@/lib/types";
 import { toast } from "sonner";
 
 export default function PricingPage() {
-  const [recommendations, setRecommendations] = useState<PricingRecommendation[]>(samplePricingRecommendations);
+  const [recommendations] = useState<PricingRecommendation[]>(samplePricingRecommendations);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [targetMargin, setTargetMargin] = useState([25]);
+  const [targetMargin, setTargetMargin] = useState(25);
   const [riskLevel, setRiskLevel] = useState("medium");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  // 실시간 가격 계산 사용 (초기 데이터만 사용)
+  const realTimePricingResults = useRealTimePricing(samplePricingRecommendations, targetMargin, riskLevel);
 
   const toggleSelection = (id: string) => {
     setSelectedItems(prev => 
@@ -28,8 +45,20 @@ export default function PricingPage() {
     );
   };
 
+  const toggleExpanded = (id: string) => {
+    setExpandedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
   const selectAll = () => {
-    setSelectedItems(recommendations.map(rec => rec.id));
+    setSelectedItems(realTimePricingResults.map(result => result.updatedRecommendation.id));
   };
 
   const deselectAll = () => {
@@ -54,116 +83,28 @@ export default function PricingPage() {
   const generateRecommendations = async () => {
     setIsGenerating(true);
     toast.info("AI 가격 추천을 생성하고 있습니다...", {
-      description: `목표 마진율: ${targetMargin[0]}%, 리스크 레벨: ${riskLevel === 'low' ? '보수적' : riskLevel === 'medium' ? '균형' : '공격적'}`
+      description: `목표 마진율: ${targetMargin}%, 리스크 레벨: ${riskLevel === 'low' ? '보수적' : riskLevel === 'medium' ? '균형' : '공격적'}`
     });
     
-    console.log('Generating new recommendations with settings:', { targetMargin: targetMargin[0], riskLevel });
-    
-    // Simulate API call delay
+    // 시뮬레이션 지연
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Generate new recommendations based on settings
-    const updatedRecommendations = recommendations.map(rec => {
-      const basePrice = rec.currentPrice;
-      const targetMarginValue = targetMargin[0];
-      const costPrice = basePrice * 0.6; // Assume 40% current margin
-      
-      let priceAdjustment = 1;
-      
-      // Adjust based on target margin
-      const currentMargin = ((basePrice - costPrice) / basePrice) * 100;
-      const marginDiff = targetMarginValue - currentMargin;
-      priceAdjustment += marginDiff * 0.01; // 1% price change per 1% margin difference
-      
-      // Adjust based on risk level
-      const riskMultiplier = {
-        low: 0.5,    // Conservative: smaller price changes
-        medium: 1.0, // Balanced: normal price changes
-        high: 1.5    // Aggressive: larger price changes
-      }[riskLevel] || 1.0;
-      
-      priceAdjustment = 1 + (priceAdjustment - 1) * riskMultiplier;
-      
-      // Apply some randomness for realistic variation
-      const randomFactor = 0.95 + Math.random() * 0.1; // ±5% random variation
-      priceAdjustment *= randomFactor;
-      
-      const newRecommendedPrice = Math.max(
-        costPrice * 1.1, // Minimum 10% margin
-        Math.round((basePrice * priceAdjustment) * 100) / 100
-      );
-      
-      const newMarginIncrease = ((newRecommendedPrice - basePrice) / basePrice) * 100;
-      
-      // Update confidence based on how reasonable the change is
-      const priceChangePercent = Math.abs(newMarginIncrease);
-      const newConfidence = Math.max(60, Math.min(95, 90 - priceChangePercent * 2));
-      
-      return {
-        ...rec,
-        recommendedPrice: newRecommendedPrice,
-        expectedMarginIncrease: newMarginIncrease,
-        confidence: Math.round(newConfidence),
-        reason: generateReason(targetMarginValue, riskLevel, newMarginIncrease)
-      };
-    });
-    
-    setRecommendations(updatedRecommendations);
     setIsGenerating(false);
-    
     toast.success("새로운 AI 가격 추천이 생성되었습니다!", {
-      description: `${updatedRecommendations.length}개 상품의 가격이 업데이트되었습니다.`
+      description: `${recommendations.length}개 상품의 가격이 업데이트되었습니다.`
     });
-  };
-  
-  const generateReason = (targetMargin: number, risk: string, marginChange: number) => {
-    const reasons = [];
-    
-    if (targetMargin > 30) {
-      reasons.push("높은 목표 마진율 적용");
-    } else if (targetMargin < 20) {
-      reasons.push("경쟁력 있는 가격 전략");
-    }
-    
-    if (risk === "high") {
-      reasons.push("공격적 가격 정책");
-    } else if (risk === "low") {
-      reasons.push("보수적 가격 조정");
-    }
-    
-    if (marginChange > 5) {
-      reasons.push("수익성 개선 우선");
-    } else if (marginChange < -2) {
-      reasons.push("판매량 증대 전략");
-    }
-    
-    if (reasons.length === 0) {
-      reasons.push("시장 균형 가격 제안");
-    }
-    
-    return reasons.join(", ");
   };
 
   const expectedRevenue = selectedItems.reduce((sum, id) => {
     const rec = recommendations.find(r => r.id === id);
-    return sum + (rec ? (rec.recommendedPrice - rec.currentPrice) * 10 : 0); // Assuming 10 units
+    return sum + (rec ? (rec.recommendedPrice - rec.currentPrice) * 10 : 0);
   }, 0);
 
-  // Calculate how settings would affect recommendations
+  // 설정 변경으로 영향받을 상품 수 계산
   const getSettingImpact = () => {
-    const currentMarginTarget = targetMargin[0];
-    let impactedCount = 0;
-    
-    recommendations.forEach(rec => {
-      const currentMargin = ((rec.currentPrice - rec.currentPrice * 0.6) / rec.currentPrice) * 100;
-      const marginDiff = Math.abs(currentMarginTarget - currentMargin);
-      
-      if (marginDiff > 5) { // If margin difference is more than 5%
-        impactedCount++;
-      }
-    });
-    
-    return impactedCount;
+    return realTimePricingResults.filter(result => 
+      Math.abs(result.priceChange) > 1 // $1 이상 가격 변화
+    ).length;
   };
 
   return (
@@ -172,7 +113,7 @@ export default function PricingPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">AI 가격 최적화</h1>
-          <p className="text-muted-foreground">AI 기반 가격 분석으로 수익성을 극대화하세요</p>
+          <p className="text-muted-foreground">실시간 eBay 수수료 분석으로 최적의 가격을 설정하세요</p>
         </div>
         <div className="flex items-center space-x-2">
           <Button onClick={generateRecommendations} variant="outline" size="sm" disabled={isGenerating}>
@@ -205,96 +146,145 @@ export default function PricingPage() {
               </Button>
             </div>
             <div className="text-sm text-muted-foreground">
-              {recommendations.length}개의 추천 항목
+              {recommendations.length}개의 추천 항목 (실시간 업데이트)
             </div>
           </div>
 
-          {recommendations.map((rec) => (
-            <GlassCard 
-              key={rec.id} 
-              className="backdrop-blur-xl bg-white/60 border-white/20 p-6 group hover:scale-[1.02] transition-all duration-300"
-            >
-              <div className="flex items-start space-x-4">
-                <Checkbox
-                  id={rec.id}
-                  checked={selectedItems.includes(rec.id)}
-                  onCheckedChange={() => toggleSelection(rec.id)}
-                  className="mt-1"
-                />
-                
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                        <TrendingUp className="h-6 w-6 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-lg">{rec.productName}</h3>
-                        <p className="text-sm text-muted-foreground">{rec.sku}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="text-right">
-                      <div className="flex items-center space-x-3">
-                        <div>
-                          <div className="text-sm text-muted-foreground">현재</div>
-                          <span className="text-lg font-mono">${rec.currentPrice}</span>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-sm text-green-600">추천</div>
-                          <span className="text-xl font-bold text-green-600">${rec.recommendedPrice}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+          {realTimePricingResults.map((result) => {
+            const rec = result.updatedRecommendation;
+            const product = sampleProducts.find(p => p.sku === rec.sku);
+            const isExpanded = expandedItems.has(rec.id);
+            
+            return (
+              <GlassCard 
+                key={rec.id} 
+                className="backdrop-blur-xl bg-white/60 border-white/20 p-6 group hover:scale-[1.02] transition-all duration-300"
+              >
+                <div className="flex items-start space-x-4">
+                  <Checkbox
+                    id={rec.id}
+                    checked={selectedItems.includes(rec.id)}
+                    onCheckedChange={() => toggleSelection(rec.id)}
+                    className="mt-1"
+                  />
                   
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">예상 마진 증가</span>
-                        <div className="font-semibold text-green-600">+{rec.expectedMarginIncrease}%</div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                          <TrendingUp className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-lg">{rec.productName}</h3>
+                          <p className="text-sm text-muted-foreground">{rec.sku}</p>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">재고 수준</span>
-                        <div className="font-semibold">{rec.stockLevel}개</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">판매 속도</span>
-                        <div className="font-semibold">{rec.salesVelocity}/주</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">AI 신뢰도</span>
-                        <div className="font-semibold">{rec.confidence}%</div>
+                      
+                      <div className="text-right">
+                        <div className="flex items-center space-x-3">
+                          <div>
+                            <div className="text-sm text-muted-foreground">현재</div>
+                            <span className="text-lg font-mono">${rec.currentPrice}</span>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-sm text-green-600">추천</div>
+                            <span className="text-xl font-bold text-green-600">${rec.recommendedPrice}</span>
+                          </div>
+                        </div>
+                        
+                        {/* 실시간 가격 변화 표시 */}
+                        {Math.abs(result.priceChange) > 0.01 && (
+                          <div className="mt-1">
+                            <Badge 
+                              variant={result.priceChange > 0 ? "default" : "destructive"} 
+                              className="text-xs"
+                            >
+                              {result.priceChange > 0 ? '+' : ''}${result.priceChange.toFixed(2)}
+                            </Badge>
+                          </div>
+                        )}
                       </div>
                     </div>
                     
-                    <div className="bg-muted/30 p-3 rounded-lg">
-                      <div className="flex items-start space-x-2">
-                        <Target className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                        <p className="text-sm text-muted-foreground">{rec.reason}</p>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">현재 마진</span>
+                          <div className="font-semibold">{result.currentMargin.toFixed(1)}%</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">목표 마진</span>
+                          <div className="font-semibold text-blue-600">{result.targetMargin}%</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">재고 수준</span>
+                          <div className="font-semibold">{rec.stockLevel}개</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">AI 신뢰도</span>
+                          <div className="font-semibold">{rec.confidence}%</div>
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-muted-foreground">
-                        경쟁가: ${Math.min(...rec.competitorPrices)} - ${Math.max(...rec.competitorPrices)}
+                      
+                      <div className="bg-muted/30 p-3 rounded-lg">
+                        <div className="flex items-start space-x-2">
+                          <Target className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <p className="text-sm text-muted-foreground">{rec.reason}</p>
+                        </div>
                       </div>
-                      <div className="flex space-x-2">
-                        <Button size="sm" variant="outline">나중에</Button>
-                        <Button 
-                          size="sm" 
-                          className="bg-gradient-to-r from-green-500 to-green-600"
-                          onClick={() => applySinglePrice(rec.id, rec.productName)}
-                        >
-                          적용하기
-                        </Button>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-muted-foreground">
+                          경쟁가: ${Math.min(...rec.competitorPrices)} - ${Math.max(...rec.competitorPrices)}
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => toggleExpanded(rec.id)}
+                          >
+                            {isExpanded ? (
+                              <>
+                                <ChevronUp className="h-4 w-4 mr-1" />
+                                간단히
+                              </>
+                            ) : (
+                              <>
+                                <Calculator className="h-4 w-4 mr-1" />
+                                상세 보기
+                              </>
+                            )}
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            className="bg-gradient-to-r from-green-500 to-green-600"
+                            onClick={() => applySinglePrice(rec.id, rec.productName)}
+                          >
+                            적용하기
+                          </Button>
+                        </div>
                       </div>
+                      
+                      {/* 상세 수익성 분석 */}
+                      {isExpanded && product && (
+                        <div className="mt-4">
+                          <ProfitBreakdown
+                            productName={rec.productName}
+                            sku={rec.sku}
+                            currentPrice={rec.currentPrice}
+                            recommendedPrice={rec.recommendedPrice}
+                            costPrice={product.purchasePrice}
+                            shippingCost={5.00}
+                            categoryId="15709"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
-            </GlassCard>
-          ))}
+              </GlassCard>
+            );
+          })}
         </div>
         
         {/* 사이드 패널 - 설정 및 통계 */}
@@ -306,7 +296,7 @@ export default function PricingPage() {
                 <div className="p-2 bg-blue-500 rounded-lg mr-3">
                   <BarChart3 className="h-5 w-5 text-white" />
                 </div>
-                가격 최적화 설정
+                실시간 가격 최적화 설정
               </h3>
             </div>
             
@@ -314,22 +304,27 @@ export default function PricingPage() {
               <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-200/50">
                 <Label className="text-sm font-semibold text-gray-700 mb-3 block">목표 마진율</Label>
                 <div className="space-y-3">
-                  <Slider
+                  <NumberInput
                     value={targetMargin}
-                    onValueChange={setTargetMargin}
-                    max={50}
-                    step={1}
-                    className="w-full"
+                    onChange={setTargetMargin}
+                    min={0}
+                    max={100}
+                    step={0.1}
+                    suffix="%"
+                    className="text-center font-semibold"
+                    placeholder="목표 마진율을 입력하세요"
                   />
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-500">0%</span>
-                    <div className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-                      {targetMargin[0]}%
-                    </div>
-                    <span className="text-xs text-gray-500">50%</span>
+                  <div className="text-xs text-gray-500 text-center">
+                    실시간으로 가격이 조정됩니다
                   </div>
                 </div>
               </div>
+              
+              {/* 마진율 프리셋 */}
+              <MarginPresets
+                selectedMargin={targetMargin}
+                onMarginSelect={setTargetMargin}
+              />
               
               <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-200/50">
                 <Label className="text-sm font-semibold text-gray-700 mb-3 block">리스크 레벨</Label>
@@ -362,13 +357,13 @@ export default function PricingPage() {
               
               <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-200/50 mb-4">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-blue-700 font-medium">예상 영향 상품</span>
+                  <span className="text-blue-700 font-medium">실시간 영향 상품</span>
                   <span className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold">
                     {getSettingImpact()}개
                   </span>
                 </div>
                 <p className="text-xs text-blue-600 mt-1">
-                  현재 설정으로 {getSettingImpact()}개 상품의 가격이 변경될 예정입니다
+                  현재 설정으로 {getSettingImpact()}개 상품의 가격이 실시간 조정됩니다
                 </p>
               </div>
 
@@ -385,7 +380,7 @@ export default function PricingPage() {
                 ) : (
                   <>
                     <BarChart3 className="h-4 w-4 mr-2" />
-                    설정 적용 ({getSettingImpact()}개 상품)
+                    새 추천 생성
                   </>
                 )}
               </Button>

@@ -95,7 +95,7 @@ export function EbayFeeDashboard() {
                 <div className="text-sm font-medium text-gray-600">{metric.title}</div>
               </div>
               {metric.change !== 0 && (
-                <Badge variant={metric.change > 0 ? \"destructive\" : \"default\"} className="text-xs">
+                <Badge variant={metric.change > 0 ? "destructive" : "default"} className="text-xs">
                   {metric.change > 0 ? (
                     <TrendingUp className="w-3 h-3 mr-1" />
                   ) : (

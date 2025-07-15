@@ -7,7 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Search, Download, Plus, MoreVertical, Upload } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Search, Download, Plus, MoreVertical, Upload, Info } from "lucide-react";
+import { FeeBreakdownCard } from "@/components/orders/fee-breakdown";
 import { sampleOrders } from "@/data/mock-data";
 import { Order } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
@@ -58,6 +61,8 @@ export default function OrdersPage() {
   const totalProfit = filteredOrders.reduce((sum, order) => sum + order.profit, 0);
   const avgMargin = filteredOrders.length > 0 ? 
     filteredOrders.reduce((sum, order) => sum + order.marginRate, 0) / filteredOrders.length : 0;
+  const totalPromotionSavings = filteredOrders.reduce((sum, order) => sum + (order.promotionSavings || 0), 0);
+  const totalFees = filteredOrders.reduce((sum, order) => sum + calculateTotalFees(order.fees), 0);
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -84,10 +89,14 @@ export default function OrdersPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <GlassCard className="backdrop-blur-xl bg-white/60 border-white/20 p-4">
           <div className="text-sm text-muted-foreground">총 매출</div>
           <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
+        </GlassCard>
+        <GlassCard className="backdrop-blur-xl bg-white/60 border-white/20 p-4">
+          <div className="text-sm text-muted-foreground">총 수수료</div>
+          <div className="text-2xl font-bold text-red-600">${totalFees.toLocaleString()}</div>
         </GlassCard>
         <GlassCard className="backdrop-blur-xl bg-white/60 border-white/20 p-4">
           <div className="text-sm text-muted-foreground">총 순이익</div>
@@ -96,6 +105,13 @@ export default function OrdersPage() {
         <GlassCard className="backdrop-blur-xl bg-white/60 border-white/20 p-4">
           <div className="text-sm text-muted-foreground">평균 마진율</div>
           <div className="text-2xl font-bold">{avgMargin.toFixed(1)}%</div>
+        </GlassCard>
+        <GlassCard className="backdrop-blur-xl bg-white/60 border-white/20 p-4">
+          <div className="text-sm text-muted-foreground">프로모션 절약</div>
+          <div className="text-2xl font-bold text-green-600">${totalPromotionSavings.toLocaleString()}</div>
+          {totalPromotionSavings > 0 && (
+            <div className="text-xs text-green-600 mt-1">2025년 베이직 스토어+ 혜택</div>
+          )}
         </GlassCard>
       </div>
 
@@ -191,8 +207,37 @@ export default function OrdersPage() {
                     <TableCell className="text-right font-semibold">
                       ${(order.salePrice * order.quantity).toFixed(2)}
                     </TableCell>
-                    <TableCell className="text-right text-red-600">
-                      -${calculateTotalFees(order.fees).toFixed(2)}
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end space-x-2">
+                        <span className="text-red-600 font-medium">
+                          -${calculateTotalFees(order.fees).toFixed(2)}
+                        </span>
+                        {order.detailedFees && order.detailedFees.length > 0 && (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                <Info className="h-3 w-3" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>수수료 상세 내역 - {order.productName}</DialogTitle>
+                              </DialogHeader>
+                              <FeeBreakdownCard 
+                                fees={order.detailedFees.filter(fee => !order.ebayTransaction?.orderLineItems[0]?.marketplaceFees.includes(fee))} 
+                                marketplaceFees={order.ebayTransaction?.orderLineItems[0]?.marketplaceFees || []}
+                                totalAmount={order.salePrice * order.quantity}
+                                promotionSavings={order.promotionSavings}
+                              />
+                            </DialogContent>
+                          </Dialog>
+                        )}
+                        {order.promotionSavings && order.promotionSavings > 0 && (
+                          <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                            -${order.promotionSavings.toFixed(2)} 절약
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className={`text-right font-semibold ${
                       order.profit > 0 ? 'text-green-600' : 'text-red-600'
