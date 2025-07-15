@@ -1,0 +1,542 @@
+/**
+ * eBay API 구조를 기반으로 한 데모 데이터
+ * 실제 eBay Finances API, Inventory API 응답 구조를 모방
+ */
+
+// eBay Fee Types (실제 API에서 사용되는 수수료 유형)
+export type EbayFeeType = 
+  | 'FINAL_VALUE_FEE'           // 최종 판매 수수료 (12.35%, 2025년 50% 할인 적용)
+  | 'INSERTION_FEE'             // 등록 수수료
+  | 'PAYMENT_PROCESSING_FEE'    // 결제 처리 수수료 (2.9% + $0.30)
+  | 'STORE_SUBSCRIPTION_FEE'    // 스토어 구독료
+  | 'PROMOTED_LISTINGS_FEE'     // 프로모션 리스팅 수수료
+  | 'INTERNATIONAL_FEE'         // 해외 거래 수수료
+  | 'SUBTITLE_FEE'              // 부제목 수수료
+  | 'LISTING_UPGRADE_FEE'       // 리스팅 업그레이드 수수료
+  | 'MANAGED_PAYMENTS_FEE'      // 관리형 결제 수수료
+  | 'BELOW_STANDARD_FEE';       // 기준 미달 수수료
+
+// eBay Store 구독 레벨
+export type EbayStoreLevel = 'NONE' | 'BASIC' | 'PREMIUM' | 'ANCHOR' | 'ENTERPRISE';
+
+// eBay 마켓플레이스
+export type EbayMarketplace = 'EBAY_US' | 'EBAY_UK' | 'EBAY_DE' | 'EBAY_AU' | 'EBAY_CA';
+
+// eBay Fee 구조 (Finances API 기반)
+export interface EbayFee {
+  amount: number;
+  currency: string;
+  feeJurisdiction: string;
+  feeMemo: string;
+  feeType: EbayFeeType;
+}
+
+// eBay Payout 구조 (Finances API 기반)
+export interface EbayPayout {
+  payoutId: string;
+  payoutStatus: 'INITIATED' | 'SUCCEEDED' | 'RETRYABLE_FAILED' | 'TERMINAL_FAILED';
+  payoutDate: string;
+  payoutAmount: {
+    convertedFromCurrency: string;
+    convertedFromValue: string;
+    currency: string;
+    value: string;
+  };
+  payoutMemo: string;
+  transactionCount: number;
+  lastAttemptedPayoutDate?: string;
+}
+
+// eBay Transaction 구조 (Finances API 기반)
+export interface EbayTransaction {
+  transactionId: string;
+  transactionDate: string;
+  transactionType: 'SALE' | 'REFUND' | 'CREDIT' | 'DISPUTE' | 'NON_SALE_CHARGE' | 'SHIPPING_LABEL';
+  transactionStatus: 'FUNDS_PROCESSING' | 'FUNDS_AVAILABLE_FOR_PAYOUT' | 'FUNDS_ON_HOLD' | 'PAID';
+  transactionMemo: string;
+  orderLineItems: Array<{
+    itemId: string;
+    transactionId: string;
+    legacyOrderId?: string;
+    fees: EbayFee[];
+    marketplaceFees: EbayFee[];
+    totalAmount: {
+      currency: string;
+      value: string;
+    };
+  }>;
+  totalFeeAmount: {
+    currency: string;
+    value: string;
+  };
+  totalFeeBasisAmount: {
+    currency: string;
+    value: string;
+  };
+}
+
+// eBay Store 정보
+export interface EbayStoreInfo {
+  storeLevel: EbayStoreLevel;
+  storeName: string;
+  monthlyFee: number;
+  freeListings: number;
+  additionalListingFee: number;
+  finalValueFeeDiscount: number; // 2025년 프로모션 할인율
+  benefits: string[];
+}
+
+// eBay 상품 정보 (Inventory API 기반)
+export interface EbayProduct {
+  sku: string;
+  offerId?: string;
+  title: string;
+  condition: 'NEW' | 'LIKE_NEW' | 'VERY_GOOD' | 'GOOD' | 'ACCEPTABLE';
+  categoryId: string;
+  listingPolicies: {
+    fulfillmentPolicyId: string;
+    paymentPolicyId: string;
+    returnPolicyId: string;
+  };
+  pricingSummary: {
+    price: {
+      currency: string;
+      value: string;
+    };
+    pricingVisibility: 'DURING_CHECKOUT' | 'PRE_CHECKOUT' | 'NONE';
+  };
+  quantityLimitPerBuyer?: number;
+  storeCategoryNames?: string[];
+  lotSize?: number;
+  marketplaceId: EbayMarketplace;
+  format: 'FIXED_PRICE' | 'AUCTION';
+  availableQuantity: number;
+  sold: number;
+  listingStartDate: string;
+  listingEndDate?: string;
+  estimatedFees?: EbayFee[];
+}
+
+// 2025년 eBay 프로모션 정보
+export interface EbayPromotion2025 {
+  id: string;
+  name: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  discountPercentage: number;
+  applicableFeeTypes: EbayFeeType[];
+  eligibilityRequirements: string[];
+  marketplaces: EbayMarketplace[];
+}
+
+// eBay Store 레벨별 정보
+export const EBAY_STORE_LEVELS: Record<EbayStoreLevel, EbayStoreInfo> = {
+  NONE: {
+    storeLevel: 'NONE',
+    storeName: '일반 셀러',
+    monthlyFee: 0,
+    freeListings: 250,
+    additionalListingFee: 0.35,
+    finalValueFeeDiscount: 0,
+    benefits: ['250개 무료 리스팅', '기본 셀러 도구']
+  },
+  BASIC: {
+    storeLevel: 'BASIC',
+    storeName: '베이직 스토어',
+    monthlyFee: 27.95,
+    freeListings: 1000,
+    additionalListingFee: 0.30,
+    finalValueFeeDiscount: 0.5, // 2025년 50% 할인
+    benefits: ['1,000개 무료 리스팅', '50% 최종 판매 수수료 할인', '고급 마케팅 도구']
+  },
+  PREMIUM: {
+    storeLevel: 'PREMIUM',
+    storeName: '프리미엄 스토어',
+    monthlyFee: 74.95,
+    freeListings: 10000,
+    additionalListingFee: 0.25,
+    finalValueFeeDiscount: 0.5, // 2025년 50% 할인
+    benefits: ['10,000개 무료 리스팅', '50% 최종 판매 수수료 할인', '프리미엄 마케팅 도구', '우선 고객 지원']
+  },
+  ANCHOR: {
+    storeLevel: 'ANCHOR',
+    storeName: '앵커 스토어',
+    monthlyFee: 349.95,
+    freeListings: 25000,
+    additionalListingFee: 0.20,
+    finalValueFeeDiscount: 0.5, // 2025년 50% 할인
+    benefits: ['25,000개 무료 리스팅', '50% 최종 판매 수수료 할인', '고급 분석 도구', '전용 계정 매니저']
+  },
+  ENTERPRISE: {
+    storeLevel: 'ENTERPRISE',
+    storeName: '엔터프라이즈 스토어',
+    monthlyFee: 2999.95,
+    freeListings: 100000,
+    additionalListingFee: 0.15,
+    finalValueFeeDiscount: 0.5, // 2025년 50% 할인
+    benefits: ['100,000개 무료 리스팅', '50% 최종 판매 수수료 할인', '엔터프라이즈 API 액세스', '24/7 전용 지원']
+  }
+};
+
+// 2025년 eBay 프로모션 정보
+export const EBAY_PROMOTIONS_2025: EbayPromotion2025[] = [
+  {
+    id: 'basic_store_discount_2025',
+    name: '베이직 스토어 이상 50% 최종 판매 수수료 할인',
+    description: '$2,500까지의 판매 금액에 대해 12.35% 최종 판매 수수료의 50% 할인',
+    startDate: '2025-01-01',
+    endDate: '2025-12-31',
+    discountPercentage: 50,
+    applicableFeeTypes: ['FINAL_VALUE_FEE'],
+    eligibilityRequirements: ['베이직 스토어 이상 구독', '판매 금액 $2,500 이하'],
+    marketplaces: ['EBAY_US', 'EBAY_UK', 'EBAY_DE', 'EBAY_AU']
+  },
+  {
+    id: 'promoted_offsite_discount_2025',
+    name: '프로모티드 오프사이트 광고비 50% 할인',
+    description: '2025년 1월 20일 - 3월 31일 캠페인 설정 시 광고비 50% 할인',
+    startDate: '2025-01-20',
+    endDate: '2025-03-31',
+    discountPercentage: 50,
+    applicableFeeTypes: ['PROMOTED_LISTINGS_FEE'],
+    eligibilityRequirements: ['해당 기간 내 프로모티드 오프사이트 캠페인 설정'],
+    marketplaces: ['EBAY_US', 'EBAY_UK', 'EBAY_DE', 'EBAY_AU']
+  }
+];
+
+// 데모 eBay 상품 데이터
+export const DEMO_EBAY_PRODUCTS: EbayProduct[] = [
+  {
+    sku: 'EBY-ELEC-001',
+    offerId: 'offer_12345678',
+    title: 'Apple iPhone 15 Pro Max 256GB 자연 티타늄',
+    condition: 'NEW',
+    categoryId: '9355',
+    listingPolicies: {
+      fulfillmentPolicyId: 'fulfillment_policy_001',
+      paymentPolicyId: 'payment_policy_001',
+      returnPolicyId: 'return_policy_001'
+    },
+    pricingSummary: {
+      price: {
+        currency: 'USD',
+        value: '1199.99'
+      },
+      pricingVisibility: 'PRE_CHECKOUT'
+    },
+    quantityLimitPerBuyer: 2,
+    marketplaceId: 'EBAY_US',
+    format: 'FIXED_PRICE',
+    availableQuantity: 15,
+    sold: 23,
+    listingStartDate: '2025-01-10T09:00:00.000Z',
+    estimatedFees: [
+      {
+        amount: 74.28, // 12.35% * 50% 할인 적용
+        currency: 'USD',
+        feeJurisdiction: 'US',
+        feeMemo: '최종 판매 수수료 (50% 할인 적용)',
+        feeType: 'FINAL_VALUE_FEE'
+      },
+      {
+        amount: 35.10, // 2.9% + $0.30
+        currency: 'USD',
+        feeJurisdiction: 'US',
+        feeMemo: '결제 처리 수수료',
+        feeType: 'PAYMENT_PROCESSING_FEE'
+      }
+    ]
+  },
+  {
+    sku: 'EBY-FASH-002',
+    offerId: 'offer_23456789',
+    title: 'Nike Air Force 1 Low White 남성 운동화',
+    condition: 'NEW',
+    categoryId: '15709',
+    listingPolicies: {
+      fulfillmentPolicyId: 'fulfillment_policy_001',
+      paymentPolicyId: 'payment_policy_001',
+      returnPolicyId: 'return_policy_001'
+    },
+    pricingSummary: {
+      price: {
+        currency: 'USD',
+        value: '89.99'
+      },
+      pricingVisibility: 'PRE_CHECKOUT'
+    },
+    marketplaceId: 'EBAY_US',
+    format: 'FIXED_PRICE',
+    availableQuantity: 42,
+    sold: 156,
+    listingStartDate: '2025-01-08T14:30:00.000Z',
+    estimatedFees: [
+      {
+        amount: 5.57, // 12.35% * 50% 할인 적용
+        currency: 'USD',
+        feeJurisdiction: 'US',
+        feeMemo: '최종 판매 수수료 (50% 할인 적용)',
+        feeType: 'FINAL_VALUE_FEE'
+      },
+      {
+        amount: 2.91, // 2.9% + $0.30
+        currency: 'USD',
+        feeJurisdiction: 'US',
+        feeMemo: '결제 처리 수수료',
+        feeType: 'PAYMENT_PROCESSING_FEE'
+      }
+    ]
+  },
+  {
+    sku: 'EBY-HOME-003',
+    offerId: 'offer_34567890',
+    title: 'Dyson V15 Detect 무선 청소기',
+    condition: 'NEW',
+    categoryId: '43576',
+    listingPolicies: {
+      fulfillmentPolicyId: 'fulfillment_policy_001',
+      paymentPolicyId: 'payment_policy_001',
+      returnPolicyId: 'return_policy_001'
+    },
+    pricingSummary: {
+      price: {
+        currency: 'USD',
+        value: '649.99'
+      },
+      pricingVisibility: 'PRE_CHECKOUT'
+    },
+    marketplaceId: 'EBAY_US',
+    format: 'FIXED_PRICE',
+    availableQuantity: 8,
+    sold: 34,
+    listingStartDate: '2025-01-12T11:15:00.000Z',
+    estimatedFees: [
+      {
+        amount: 40.22, // 12.35% * 50% 할인 적용
+        currency: 'USD',
+        feeJurisdiction: 'US',
+        feeMemo: '최종 판매 수수료 (50% 할인 적용)',
+        feeType: 'FINAL_VALUE_FEE'
+      },
+      {
+        amount: 19.15, // 2.9% + $0.30
+        currency: 'USD',
+        feeJurisdiction: 'US',
+        feeMemo: '결제 처리 수수료',
+        feeType: 'PAYMENT_PROCESSING_FEE'
+      },
+      {
+        amount: 12.99, // 프로모션 리스팅 수수료
+        currency: 'USD',
+        feeJurisdiction: 'US',
+        feeMemo: '프로모티드 리스팅 수수료',
+        feeType: 'PROMOTED_LISTINGS_FEE'
+      }
+    ]
+  }
+];
+
+// 데모 eBay 거래 내역
+export const DEMO_EBAY_TRANSACTIONS: EbayTransaction[] = [
+  {
+    transactionId: 'TXN_001_2025',
+    transactionDate: '2025-01-14T16:45:00.000Z',
+    transactionType: 'SALE',
+    transactionStatus: 'FUNDS_AVAILABLE_FOR_PAYOUT',
+    transactionMemo: 'iPhone 15 Pro Max 판매',
+    orderLineItems: [
+      {
+        itemId: '12345678901',
+        transactionId: 'TXN_001_2025',
+        legacyOrderId: 'ORDER_001_2025',
+        fees: [
+          {
+            amount: 74.28,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '최종 판매 수수료 (50% 할인 적용)',
+            feeType: 'FINAL_VALUE_FEE'
+          },
+          {
+            amount: 35.10,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '결제 처리 수수료',
+            feeType: 'PAYMENT_PROCESSING_FEE'
+          }
+        ],
+        marketplaceFees: [],
+        totalAmount: {
+          currency: 'USD',
+          value: '1199.99'
+        }
+      }
+    ],
+    totalFeeAmount: {
+      currency: 'USD',
+      value: '109.38'
+    },
+    totalFeeBasisAmount: {
+      currency: 'USD',
+      value: '1199.99'
+    }
+  },
+  {
+    transactionId: 'TXN_002_2025',
+    transactionDate: '2025-01-14T14:22:00.000Z',
+    transactionType: 'SALE',
+    transactionStatus: 'FUNDS_PROCESSING',
+    transactionMemo: 'Nike Air Force 1 판매',
+    orderLineItems: [
+      {
+        itemId: '23456789012',
+        transactionId: 'TXN_002_2025',
+        legacyOrderId: 'ORDER_002_2025',
+        fees: [
+          {
+            amount: 5.57,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '최종 판매 수수료 (50% 할인 적용)',
+            feeType: 'FINAL_VALUE_FEE'
+          },
+          {
+            amount: 2.91,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '결제 처리 수수료',
+            feeType: 'PAYMENT_PROCESSING_FEE'
+          }
+        ],
+        marketplaceFees: [],
+        totalAmount: {
+          currency: 'USD',
+          value: '89.99'
+        }
+      }
+    ],
+    totalFeeAmount: {
+      currency: 'USD',
+      value: '8.48'
+    },
+    totalFeeBasisAmount: {
+      currency: 'USD',
+      value: '89.99'
+    }
+  },
+  {
+    transactionId: 'TXN_003_2025',
+    transactionDate: '2025-01-13T10:15:00.000Z',
+    transactionType: 'NON_SALE_CHARGE',
+    transactionStatus: 'FUNDS_AVAILABLE_FOR_PAYOUT',
+    transactionMemo: '베이직 스토어 월 구독료',
+    orderLineItems: [
+      {
+        itemId: 'STORE_SUBSCRIPTION',
+        transactionId: 'TXN_003_2025',
+        fees: [
+          {
+            amount: 27.95,
+            currency: 'USD',
+            feeJurisdiction: 'US',
+            feeMemo: '베이직 스토어 월 구독료',
+            feeType: 'STORE_SUBSCRIPTION_FEE'
+          }
+        ],
+        marketplaceFees: [],
+        totalAmount: {
+          currency: 'USD',
+          value: '-27.95'
+        }
+      }
+    ],
+    totalFeeAmount: {
+      currency: 'USD',
+      value: '27.95'
+    },
+    totalFeeBasisAmount: {
+      currency: 'USD',
+      value: '0'
+    }
+  }
+];
+
+// 데모 eBay 지급 내역
+export const DEMO_EBAY_PAYOUTS: EbayPayout[] = [
+  {
+    payoutId: 'PAYOUT_001_2025',
+    payoutStatus: 'SUCCEEDED',
+    payoutDate: '2025-01-12T09:00:00.000Z',
+    payoutAmount: {
+      convertedFromCurrency: 'USD',
+      convertedFromValue: '2847.63',
+      currency: 'USD',
+      value: '2847.63'
+    },
+    payoutMemo: '2025년 1월 첫 번째 주 판매 대금',
+    transactionCount: 15,
+    lastAttemptedPayoutDate: '2025-01-12T09:00:00.000Z'
+  },
+  {
+    payoutId: 'PAYOUT_002_2025',
+    payoutStatus: 'INITIATED',
+    payoutDate: '2025-01-14T09:00:00.000Z',
+    payoutAmount: {
+      convertedFromCurrency: 'USD',
+      convertedFromValue: '1582.14',
+      currency: 'USD',
+      value: '1582.14'
+    },
+    payoutMemo: '2025년 1월 두 번째 주 판매 대금',
+    transactionCount: 8,
+    lastAttemptedPayoutDate: '2025-01-14T09:00:00.000Z'
+  }
+];
+
+// 수수료 계산을 위한 현재 사용자 스토어 정보
+export const CURRENT_USER_STORE: EbayStoreInfo = EBAY_STORE_LEVELS.BASIC;
+
+// 월별 수수료 요약 데이터
+export interface MonthlyFeeSummary {
+  month: string;
+  totalSales: number;
+  totalFees: number;
+  feeBreakdown: {
+    finalValueFees: number;
+    paymentProcessingFees: number;
+    storeSubscriptionFees: number;
+    promotedListingsFees: number;
+    otherFees: number;
+  };
+  savingsFromPromotions: number;
+}
+
+export const DEMO_MONTHLY_FEE_SUMMARY: MonthlyFeeSummary[] = [
+  {
+    month: '2025-01',
+    totalSales: 45280.50,
+    totalFees: 3842.65,
+    feeBreakdown: {
+      finalValueFees: 2798.23, // 50% 할인 적용
+      paymentProcessingFees: 1342.33,
+      storeSubscriptionFees: 27.95,
+      promotedListingsFees: 524.87,
+      otherFees: 149.27
+    },
+    savingsFromPromotions: 2798.23 // 50% 할인으로 절약한 금액
+  },
+  {
+    month: '2024-12',
+    totalSales: 52140.75,
+    totalFees: 6425.84,
+    feeBreakdown: {
+      finalValueFees: 6439.39, // 할인 적용 전
+      paymentProcessingFees: 1512.08,
+      storeSubscriptionFees: 27.95,
+      promotedListingsFees: 678.12,
+      otherFees: 203.30
+    },
+    savingsFromPromotions: 0 // 2025년 프로모션 이전
+  }
+];

@@ -1,7 +1,8 @@
 {
-  "name": "ebay-multichannel-manager",
-  "version": "0.1.0",
+  "name": "ebay-seller-fee-manager",
+  "version": "0.2.0",
   "private": true,
+  "description": "eBay 전용 수수료 관리 및 분석 시스템 - 2025년 프로모션 정책 반영",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",

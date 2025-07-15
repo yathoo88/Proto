@@ -30,7 +30,7 @@ export interface OrderFees {
 export interface Order {
   id: string;
   orderNumber: string;
-  platform: 'ebay' | 'shopify' | 'auction' | 'other';
+  platform: 'ebay';
   sku: string;
   productName: string;
   quantity: number;
@@ -130,19 +130,12 @@ export interface AutoNegotiationRule {
   active: boolean;
 }
 
-// 플랫폼별 수수료 구조
-export interface PlatformFeeStructure {
-  ebay: {
-    baseFee: number;
-    paymentFee: number;
-    promotionFee?: number;
-  };
-  shopify: {
-    baseFee: number;
-    transactionFee: number;
-  };
-  auction: {
-    baseFee: number;
-    paymentFee: number;
-  };
+// eBay 수수료 구조
+export interface EbayFeeStructure {
+  finalValueFee: number;
+  paymentProcessingFee: number;
+  storeSubscriptionFee?: number;
+  promotedListingsFee?: number;
+  internationalFee?: number;
+  insertionFee?: number;
 }

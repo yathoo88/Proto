@@ -2,6 +2,7 @@ import { MetricCard } from "@/components/dashboard/metric-card";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { TopProductsTable } from "@/components/dashboard/top-products-table";
 import { RecentOrdersList } from "@/components/dashboard/recent-orders-list";
+import { EbayFeeDashboard } from "@/components/dashboard/ebay-fee-dashboard";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -11,7 +12,8 @@ import {
   Package, 
   AlertTriangle,
   RefreshCw,
-  Download 
+  Download,
+  Store
 } from "lucide-react";
 import {
   sampleDashboardMetrics,
@@ -19,6 +21,7 @@ import {
   sampleProducts,
   sampleOrders
 } from "@/data/mock-data";
+import { CURRENT_USER_STORE, DEMO_MONTHLY_FEE_SUMMARY } from "@/data/ebay-demo-data";
 
 export default function Dashboard() {
   const metrics = sampleDashboardMetrics;
@@ -28,8 +31,12 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">대시보드</h1>
-          <p className="text-muted-foreground">멀티채널 판매 현황을 한눈에 확인하세요</p>
+          <h1 className="text-3xl font-bold tracking-tight">eBay 셀러 대시보드</h1>
+          <p className="text-muted-foreground">eBay 판매 현황과 수수료를 한눈에 확인하세요</p>
+          <div className="flex items-center gap-2 mt-2">
+            <Store className="h-4 w-4 text-purple-600" />
+            <span className="text-sm font-medium text-purple-600">{CURRENT_USER_STORE.storeName}</span>
+          </div>
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline" size="sm">
@@ -43,37 +50,40 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Metrics Cards */}
+      {/* eBay 수수료 대시보드 */}
+      <EbayFeeDashboard />
+      
+      {/* eBay 판매 지표 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="총 매출"
-          value={`$${metrics.totalRevenue.toLocaleString()}`}
+          title="eBay 총 매출"
+          value={`$${DEMO_MONTHLY_FEE_SUMMARY[0].totalSales.toLocaleString()}`}
           icon={<DollarSign className="h-4 w-4" />}
-          trend="+12.5%"
-          trendType="positive"
+          trend="-13.2%"
+          trendType="negative"
           className="backdrop-blur-xl bg-white/60 border-white/20"
         />
         <MetricCard
-          title="순이익"
-          value={`$${metrics.totalProfit.toLocaleString()}`}
+          title="순이익 (수수료 제외)"
+          value={`$${(DEMO_MONTHLY_FEE_SUMMARY[0].totalSales - DEMO_MONTHLY_FEE_SUMMARY[0].totalFees).toLocaleString()}`}
           icon={<TrendingUp className="h-4 w-4" />}
-          trend="+8.2%"
+          trend="+5.8%"
           trendType="positive"
           className="backdrop-blur-xl bg-white/60 border-white/20"
         />
         <MetricCard
-          title="평균 마진율"
-          value={`${metrics.avgMarginRate}%`}
+          title="실효 수수료율"
+          value={`${((DEMO_MONTHLY_FEE_SUMMARY[0].totalFees / DEMO_MONTHLY_FEE_SUMMARY[0].totalSales) * 100).toFixed(1)}%`}
           icon={<Target className="h-4 w-4" />}
-          trend="+2.1%"
+          trend="-40.2%"
           trendType="positive"
           className="backdrop-blur-xl bg-white/60 border-white/20"
         />
         <MetricCard
-          title="총 주문수"
-          value={metrics.totalOrders.toLocaleString()}
+          title="프로모션 절약"
+          value={`$${DEMO_MONTHLY_FEE_SUMMARY[0].savingsFromPromotions.toLocaleString()}`}
           icon={<Package className="h-4 w-4" />}
-          trend="+15.3%"
+          trend="신규"
           trendType="positive"
           className="backdrop-blur-xl bg-white/60 border-white/20"
         />
@@ -88,31 +98,35 @@ export default function Dashboard() {
           </GlassCard>
         </div>
 
-        {/* AI 추천 현황 */}
+        {/* eBay 스토어 현황 */}
         <GlassCard className="backdrop-blur-xl bg-white/60 border-white/20 p-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">AI 가격 추천</h3>
-              <div className="text-2xl font-bold text-blue-600">
-                {metrics.aiRecommendations}개
+              <h3 className="text-lg font-semibold">eBay 스토어 혜택</h3>
+              <div className="text-sm font-bold text-purple-600">
+                {CURRENT_USER_STORE.storeName}
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>예상 수익 증가</span>
-                <span className="font-semibold text-green-600">+15.2%</span>
+                <span>월 구독료</span>
+                <span className="font-semibold">${CURRENT_USER_STORE.monthlyFee}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>대기중인 오퍼</span>
-                <span className="font-semibold">{metrics.pendingOffers}개</span>
+                <span>무료 리스팅</span>
+                <span className="font-semibold text-green-600">{CURRENT_USER_STORE.freeListings.toLocaleString()}개</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>낮은 재고 알림</span>
-                <span className="font-semibold text-orange-600">{metrics.lowStockItems}개</span>
+                <span>수수료 할인</span>
+                <span className="font-semibold text-blue-600">{(CURRENT_USER_STORE.finalValueFeeDiscount * 100)}%</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>이번 달 절약</span>
+                <span className="font-semibold text-green-600">${DEMO_MONTHLY_FEE_SUMMARY[0].savingsFromPromotions.toLocaleString()}</span>
               </div>
             </div>
-            <Button className="w-full bg-gradient-to-r from-blue-500 to-purple-600">
-              가격 최적화 보기
+            <Button className="w-full bg-gradient-to-r from-purple-500 to-blue-600" onClick={() => window.location.href = '/store'}>
+              스토어 관리
             </Button>
           </div>
         </GlassCard>
@@ -129,18 +143,18 @@ export default function Dashboard() {
         </GlassCard>
       </div>
 
-      {/* Alert Section */}
-      <GlassCard className="backdrop-blur-xl bg-orange-50/60 border-orange-200/30 p-4">
+      {/* eBay 2025 프로모션 알림 */}
+      <GlassCard className="backdrop-blur-xl bg-green-50/60 border-green-200/30 p-4">
         <div className="flex items-center space-x-3">
-          <AlertTriangle className="h-5 w-5 text-orange-600" />
+          <Store className="h-5 w-5 text-green-600" />
           <div>
-            <h4 className="font-medium text-orange-800">재고 부족 알림</h4>
-            <p className="text-sm text-orange-600">
-              {metrics.lowStockItems}개 상품의 재고가 부족합니다. 재주문을 고려해보세요.
+            <h4 className="font-medium text-green-800">2025년 eBay 프로모션 혜택 적용 중</h4>
+            <p className="text-sm text-green-600">
+              베이직 스토어 이상 50% 최종 판매 수수료 할인이 적용되어 이번 달 ${DEMO_MONTHLY_FEE_SUMMARY[0].savingsFromPromotions.toLocaleString()}를 절약했습니다.
             </p>
           </div>
           <Button variant="outline" size="sm" className="ml-auto">
-            확인하기
+            자세히 보기
           </Button>
         </div>
       </GlassCard>

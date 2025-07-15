@@ -106,60 +106,60 @@ export const sampleOrders: Order[] = [
     salePrice: 25.99,
     purchasePrice: 12.50,
     fees: {
-      platformFee: 5.20, // 10%
-      paymentFee: 1.56, // 3%
+      platformFee: 1.61, // 12.35% * 50% 할인 적용
+      paymentFee: 1.05, // 2.9% + $0.30
       shippingFee: 0,
-      promotionFee: 2.60, // 5%
-      tax: 4.16, // 8%
+      promotionFee: 0,
+      tax: 0,
       others: 0
     },
-    profit: 13.46,
-    marginRate: 25.9,
+    profit: 22.33,
+    marginRate: 85.9,
     orderDate: "2024-07-15T10:30:00Z",
     shippingDate: "2024-07-16T14:20:00Z",
     status: "shipped"
   },
   {
     id: "2",
-    orderNumber: "SF-2024-005678",
-    platform: "shopify",
+    orderNumber: "EB-2024-005678",
+    platform: "ebay",
     sku: "TGT-PANTS-002",
     productName: "Target Women's Jeans - Black",
     quantity: 1,
     salePrice: 35.99,
     purchasePrice: 18.75,
     fees: {
-      platformFee: 1.04, // 2.9%
-      paymentFee: 0.18, // 0.5%
+      platformFee: 2.23, // 12.35% * 50% 할인 적용
+      paymentFee: 1.34, // 2.9% + $0.30
       shippingFee: 0,
       promotionFee: 0,
-      tax: 2.88, // 8%
+      tax: 0,
       others: 0
     },
-    profit: 13.14,
-    marginRate: 36.5,
+    profit: 32.42,
+    marginRate: 90.1,
     orderDate: "2024-07-14T15:45:00Z",
     status: "delivered"
   },
   {
     id: "3",
-    orderNumber: "AU-2024-009012",
-    platform: "auction",
+    orderNumber: "EB-2024-009012",
+    platform: "ebay",
     sku: "WMT-SHOES-003",
     productName: "Walmart Sneakers - White",
     quantity: 1,
     salePrice: 45.99,
     purchasePrice: 22.00,
     fees: {
-      platformFee: 2.53, // 5.5%
-      paymentFee: 1.56, // 3.4%
+      platformFee: 2.84, // 12.35% * 50% 할인 적용
+      paymentFee: 1.63, // 2.9% + $0.30
       shippingFee: 3.99,
       promotionFee: 0,
-      tax: 3.68, // 8%
+      tax: 0,
       others: 0
     },
-    profit: 12.23,
-    marginRate: 26.6,
+    profit: 15.53,
+    marginRate: 33.8,
     orderDate: "2024-07-13T09:15:00Z",
     status: "pending"
   },
@@ -173,37 +173,37 @@ export const sampleOrders: Order[] = [
     salePrice: 79.99,
     purchasePrice: 35.00,
     fees: {
-      platformFee: 8.00, // 10%
-      paymentFee: 2.40, // 3%
+      platformFee: 4.95, // 12.35% * 50% 할인 적용
+      paymentFee: 2.62, // 2.9% + $0.30
       shippingFee: 0,
-      promotionFee: 4.00, // 5%
-      tax: 6.40, // 8%
+      promotionFee: 0,
+      tax: 0,
       others: 0
     },
-    profit: 24.19,
-    marginRate: 30.2,
+    profit: 37.42,
+    marginRate: 46.8,
     orderDate: "2024-07-12T16:30:00Z",
     status: "delivered"
   },
   {
     id: "5",
-    orderNumber: "SF-2024-007890",
-    platform: "shopify",
+    orderNumber: "EB-2024-007890",
+    platform: "ebay",
     sku: "COST-HOME-005",
     productName: "Costco Kitchen Set",
     quantity: 1,
     salePrice: 89.99,
     purchasePrice: 45.00,
     fees: {
-      platformFee: 2.61, // 2.9%
-      paymentFee: 0.45, // 0.5%
+      platformFee: 5.57, // 12.35% * 50% 할인 적용
+      paymentFee: 2.91, // 2.9% + $0.30
       shippingFee: 0,
       promotionFee: 0,
-      tax: 7.20, // 8%
+      tax: 0,
       others: 0
     },
-    profit: 34.73,
-    marginRate: 38.6,
+    profit: 36.51,
+    marginRate: 40.6,
     orderDate: "2024-07-11T11:00:00Z",
     status: "shipped"
   }
