@@ -224,7 +224,9 @@ export default function OrdersPage() {
                                 <DialogTitle>수수료 상세 내역 - {order.productName}</DialogTitle>
                               </DialogHeader>
                               <FeeBreakdownCard 
-                                fees={order.detailedFees.filter(fee => !order.ebayTransaction?.orderLineItems[0]?.marketplaceFees.includes(fee))} 
+                                fees={order.detailedFees?.filter(fee => 
+                                  !order.ebayTransaction?.orderLineItems[0]?.marketplaceFees.some(mf => mf.feeType === fee.feeType)
+                                ) || []}
                                 marketplaceFees={order.ebayTransaction?.orderLineItems[0]?.marketplaceFees || []}
                                 totalAmount={order.salePrice * order.quantity}
                                 promotionSavings={order.promotionSavings}

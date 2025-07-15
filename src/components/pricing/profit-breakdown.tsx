@@ -37,8 +37,8 @@ export function ProfitBreakdown({
 }: ProfitBreakdownProps) {
   const [showDetails, setShowDetails] = useState(false);
 
-  const currentFees = calculateAllFees(currentPrice, categoryId);
-  const recommendedFees = calculateAllFees(recommendedPrice, categoryId);
+  const currentFees = calculateAllFees(currentPrice, { categoryId });
+  const recommendedFees = calculateAllFees(recommendedPrice, { categoryId });
   
   const currentProfit = currentPrice - costPrice - shippingCost - currentFees.totalFees;
   const recommendedProfit = recommendedPrice - costPrice - shippingCost - recommendedFees.totalFees;

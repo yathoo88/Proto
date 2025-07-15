@@ -3,17 +3,46 @@
 import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
 import { Calculator, TrendingDown, TrendingUp } from "lucide-react";
+import { EbayFee } from "@/lib/types";
 
-interface FeeItem {
-  type: string;
-  amount: number;
-  description: string;
-  isPromotion?: boolean;
-}
+// 수수료 유형별 한국어 라벨 매핑
+const getFeeLabel = (feeType: string) => {
+  const labelMap: Record<string, string> = {
+    'FINAL_VALUE_FEE': '최종 판매 수수료',
+    'FINAL_VALUE_FEE_FIXED_PER_ORDER': '주문당 고정 수수료',
+    'FINAL_VALUE_SHIPPING_FEE': '배송비 기반 수수료',
+    'PAYMENT_PROCESSING_FEE': '결제 처리 수수료',
+    'INTERNATIONAL_FEE': '국제 거래 수수료',
+    'INSERTION_FEE': '리스팅 등록 수수료',
+    'AD_FEE': '광고 수수료',
+    'PROMOTED_LISTINGS_FEE': '프로모션 리스팅 수수료',
+    'BELOW_STANDARD_FEE': '기준 미달 수수료',
+    'BELOW_STANDARD_SHIPPING_FEE': '기준 미달 배송 수수료',
+    'HIGH_ITEM_NOT_AS_DESCRIBED_FEE': '상품 불일치 수수료',
+    'HIGH_ITEM_NOT_AS_DESCRIBED_SHIPPING_FEE': '상품 불일치 배송 수수료',
+    'EXPRESS_PAYOUT_FEE': '빠른 지급 수수료',
+    'BANK_PAYOUT_FEE': '은행 송금 수수료',
+    'REGULATORY_OPERATING_FEE': '규제 운영 수수료',
+    'PAYMENT_DISPUTE_FEE': '결제 분쟁 수수료',
+    'SUBTITLE_FEE': '부제목 수수료',
+    'BOLD_FEE': '굵은 글씨 수수료',
+    'FEATURED_GALLERY_FEE': '특별 갤러리 수수료',
+    'GALLERY_FEE': '갤러리 수수료',
+    'STORE_SUBSCRIPTION_FEE': '스토어 구독료',
+    'TAX_DEDUCTION_AT_SOURCE': '원천 세금 공제',
+    'INCOME_TAX_WITHHOLDING': '소득세 원천징수',
+    'VAT_WITHHOLDING': '부가세 원천징수',
+    'FINANCE_FEE': '금융 수수료',
+    'CHARITY_DONATION': '자선 기부',
+    'OTHER_FEES': '기타 수수료'
+  };
+  
+  return labelMap[feeType] || feeType;
+};
 
 interface FeeBreakdownProps {
-  fees: FeeItem[];
-  marketplaceFees: FeeItem[];
+  fees: EbayFee[];
+  marketplaceFees: EbayFee[];
   totalAmount: number;
   promotionSavings?: number;
 }
@@ -24,7 +53,7 @@ export function FeeBreakdownCard({
   totalAmount, 
   promotionSavings = 0 
 }: FeeBreakdownProps) {
-  const totalFees = [...fees, ...marketplaceFees].reduce((sum, fee) => sum + fee.amount, 0);
+  const totalFees = [...fees, ...marketplaceFees].reduce((sum, fee) => sum + Math.abs(fee.amount), 0);
   const netAmount = totalAmount - totalFees + promotionSavings;
   
   return (
@@ -47,10 +76,12 @@ export function FeeBreakdownCard({
           {marketplaceFees.map((fee, index) => (
             <div key={index} className="flex justify-between items-center py-2 px-3 bg-red-50/50 rounded-lg border border-red-200/50">
               <div>
-                <span className="text-sm font-medium text-red-700">{fee.type}</span>
-                <p className="text-xs text-red-600">{fee.description}</p>
+                <span className="text-sm font-medium text-red-700">{getFeeLabel(fee.feeType)}</span>
+                <p className="text-xs text-red-600">{fee.feeMemo}</p>
               </div>
-              <span className="font-medium text-red-600">-${fee.amount.toFixed(2)}</span>
+              <span className="font-medium text-red-600">
+                {fee.amount < 0 ? '+' : '-'}${Math.abs(fee.amount).toFixed(2)}
+              </span>
             </div>
           ))}
         </div>
@@ -61,10 +92,12 @@ export function FeeBreakdownCard({
             {fees.map((fee, index) => (
               <div key={index} className="flex justify-between items-center py-2 px-3 bg-orange-50/50 rounded-lg border border-orange-200/50">
                 <div>
-                  <span className="text-sm font-medium text-orange-700">{fee.type}</span>
-                  <p className="text-xs text-orange-600">{fee.description}</p>
+                  <span className="text-sm font-medium text-orange-700">{getFeeLabel(fee.feeType)}</span>
+                  <p className="text-xs text-orange-600">{fee.feeMemo}</p>
                 </div>
-                <span className="font-medium text-orange-600">-${fee.amount.toFixed(2)}</span>
+                <span className="font-medium text-orange-600">
+                  {fee.amount < 0 ? '+' : '-'}${Math.abs(fee.amount).toFixed(2)}
+                </span>
               </div>
             ))}
           </div>
