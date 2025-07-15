@@ -154,13 +154,11 @@ export const sampleOffers: CustomerOffer[] = [
     productName: "JCPenney Men's Cotton Shirt - Blue",
     originalPrice: 25.99,
     offerPrice: 22.50,
-    customerName: "김고객",
-    message: "3개 구매할게요. 할인 가능하신가요?",
-    date: "2024-07-15T14:20:00Z",
+    customerMessage: "3개 구매할게요. 할인 가능하신가요?",
     status: "pending",
-    responseDeadline: "2024-07-17T14:20:00Z",
-    aiRecommendation: "accept",
-    profitImpact: -3.49
+    recommendedAction: "accept",
+    recommendedCounterPrice: 23.00,
+    createdAt: "2024-07-15T14:20:00Z"
   }
 ];
 
