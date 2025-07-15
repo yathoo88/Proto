@@ -1,21 +1,20 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
+import { useState } from "react";
+import { GlassCard } from "@/components/ui/glass-card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { calculateAllFees } from "@/lib/ebay-fee-calculator";
 import { 
-  ChevronDown, 
-  ChevronUp, 
+  Calculator, 
   DollarSign, 
   TrendingUp, 
-  Calculator,
-  AlertTriangle,
-  CheckCircle
-} from 'lucide-react';
-import { calculateProfitability } from '@/lib/ebay-fee-calculator';
-import { cn } from '@/lib/utils';
+  TrendingDown, 
+  Package, 
+  Truck,
+  ArrowRight,
+  Info
+} from "lucide-react";
 
 interface ProfitBreakdownProps {
   productName: string;
@@ -23,211 +22,225 @@ interface ProfitBreakdownProps {
   currentPrice: number;
   recommendedPrice: number;
   costPrice: number;
-  shippingCost?: number;
-  categoryId?: string;
-  className?: string;
+  shippingCost: number;
+  categoryId: string;
 }
 
-export function ProfitBreakdown({ 
-  currentPrice, 
-  recommendedPrice, 
-  costPrice, 
-  shippingCost = 5.00,
-  categoryId,
-  className 
+export function ProfitBreakdown({
+  productName,
+  sku,
+  currentPrice,
+  recommendedPrice,
+  costPrice,
+  shippingCost,
+  categoryId
 }: ProfitBreakdownProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+
+  const currentFees = calculateAllFees(currentPrice, categoryId);
+  const recommendedFees = calculateAllFees(recommendedPrice, categoryId);
   
-  // 현재 가격과 추천 가격에 대한 수익성 분석
-  const currentAnalysis = calculateProfitability(currentPrice, costPrice, { 
-    categoryId, 
-    shippingCost 
-  });
+  const currentProfit = currentPrice - costPrice - shippingCost - currentFees.totalFees;
+  const recommendedProfit = recommendedPrice - costPrice - shippingCost - recommendedFees.totalFees;
   
-  const recommendedAnalysis = calculateProfitability(recommendedPrice, costPrice, { 
-    categoryId, 
-    shippingCost 
-  });
+  const currentMargin = ((currentProfit / currentPrice) * 100);
+  const recommendedMargin = ((recommendedProfit / recommendedPrice) * 100);
   
-  // 변화량 계산
-  const profitChange = recommendedAnalysis.profit.netProfit - currentAnalysis.profit.netProfit;
-  const marginChange = recommendedAnalysis.profit.profitMargin - currentAnalysis.profit.profitMargin;
-  
+  const profitDifference = recommendedProfit - currentProfit;
+  const marginDifference = recommendedMargin - currentMargin;
+
+  const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`;
+  const formatPercent = (percent: number) => `${percent.toFixed(1)}%`;
+
   return (
-    <Card className={cn("overflow-hidden", className)}>
-      <CardHeader className="pb-3">
+    <GlassCard className="backdrop-blur-xl bg-white/95 border-white/30 p-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium">수익성 상세 분석</CardTitle>
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+              <Calculator className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">수익성 상세 분석</h3>
+              <p className="text-sm text-gray-600">{productName} ({sku})</p>
+            </div>
+          </div>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="h-8 w-8 p-0"
+            onClick={() => setShowDetails(!showDetails)}
           >
-            {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
+            <Info className="h-4 w-4 mr-2" />
+            {showDetails ? "간단히" : "자세히"}
           </Button>
         </div>
-        
-        {/* 요약 정보 */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="space-y-1">
-            <div className="text-muted-foreground">현재 순수익</div>
-            <div className="font-semibold flex items-center">
-              <DollarSign className="h-3 w-3 mr-1" />
-              {currentAnalysis.profit.netProfit.toFixed(2)}
+
+        {/* 현재 vs 추천 비교 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-gray-50/50 p-4 rounded-lg border border-gray-200/50">
+            <div className="flex items-center space-x-2 mb-3">
+              <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+              <span className="font-medium text-gray-700">현재 상태</span>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>판매가</span>
+                <span className="font-medium">{formatCurrency(currentPrice)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>순이익</span>
+                <span className={`font-medium ${currentProfit > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(currentProfit)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>마진율</span>
+                <span className={`font-medium ${currentMargin > 20 ? 'text-green-600' : 'text-yellow-600'}`}>
+                  {formatPercent(currentMargin)}
+                </span>
+              </div>
             </div>
           </div>
-          <div className="space-y-1">
-            <div className="text-muted-foreground">예상 순수익</div>
-            <div className="font-semibold flex items-center text-green-600">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              {recommendedAnalysis.profit.netProfit.toFixed(2)}
+
+          <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-200/50">
+            <div className="flex items-center space-x-2 mb-3">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <span className="font-medium text-blue-700">추천 상태</span>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>판매가</span>
+                <span className="font-medium">{formatCurrency(recommendedPrice)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>순이익</span>
+                <span className={`font-medium ${recommendedProfit > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(recommendedProfit)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>마진율</span>
+                <span className={`font-medium ${recommendedMargin > 20 ? 'text-green-600' : 'text-yellow-600'}`}>
+                  {formatPercent(recommendedMargin)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
-        
+
         {/* 변화량 표시 */}
-        {profitChange !== 0 && (
-          <div className="flex items-center gap-2">
-            <Badge variant={profitChange > 0 ? "default" : "destructive"} className="text-xs">
-              {profitChange > 0 ? '+' : ''}{profitChange.toFixed(2)} 순수익 변화
-            </Badge>
-            <Badge variant={marginChange > 0 ? "default" : "destructive"} className="text-xs">
-              {marginChange > 0 ? '+' : ''}{marginChange.toFixed(1)}% 마진 변화
-            </Badge>
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border border-green-200/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-br from-green-500 to-blue-500 rounded-lg">
+                {profitDifference > 0 ? (
+                  <TrendingUp className="h-4 w-4 text-white" />
+                ) : (
+                  <TrendingDown className="h-4 w-4 text-white" />
+                )}
+              </div>
+              <div>
+                <div className="font-medium text-gray-800">예상 변화</div>
+                <div className="text-sm text-gray-600">추천 가격 적용 시</div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className={`font-bold text-lg ${profitDifference > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {profitDifference > 0 ? '+' : ''}{formatCurrency(profitDifference)}
+              </div>
+              <div className={`text-sm ${marginDifference > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {marginDifference > 0 ? '+' : ''}{formatPercent(marginDifference)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 상세 분석 (토글) */}
+        {showDetails && (
+          <div className="space-y-4">
+            <div className="border-t border-gray-200/50 pt-4">
+              <h4 className="font-medium text-gray-700 mb-3">비용 구조 분석</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+                    <Package className="h-4 w-4" />
+                    <span>현재 가격 구조</span>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>판매가</span>
+                      <span className="font-medium">{formatCurrency(currentPrice)}</span>
+                    </div>
+                    <div className="flex justify-between text-red-600">
+                      <span>- 상품 원가</span>
+                      <span>-{formatCurrency(costPrice)}</span>
+                    </div>
+                    <div className="flex justify-between text-red-600">
+                      <span>- 배송비</span>
+                      <span>-{formatCurrency(shippingCost)}</span>
+                    </div>
+                    <div className="flex justify-between text-red-600">
+                      <span>- eBay 수수료</span>
+                      <span>-{formatCurrency(currentFees.totalFees)}</span>
+                    </div>
+                    <div className="border-t pt-2 flex justify-between font-medium">
+                      <span>순이익</span>
+                      <span className={currentProfit > 0 ? 'text-green-600' : 'text-red-600'}>
+                        {formatCurrency(currentProfit)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2 text-sm font-medium text-blue-700">
+                    <TrendingUp className="h-4 w-4" />
+                    <span>추천 가격 구조</span>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>판매가</span>
+                      <span className="font-medium">{formatCurrency(recommendedPrice)}</span>
+                    </div>
+                    <div className="flex justify-between text-red-600">
+                      <span>- 상품 원가</span>
+                      <span>-{formatCurrency(costPrice)}</span>
+                    </div>
+                    <div className="flex justify-between text-red-600">
+                      <span>- 배송비</span>
+                      <span>-{formatCurrency(shippingCost)}</span>
+                    </div>
+                    <div className="flex justify-between text-red-600">
+                      <span>- eBay 수수료</span>
+                      <span>-{formatCurrency(recommendedFees.totalFees)}</span>
+                    </div>
+                    <div className="border-t pt-2 flex justify-between font-medium">
+                      <span>순이익</span>
+                      <span className={recommendedProfit > 0 ? 'text-green-600' : 'text-red-600'}>
+                        {formatCurrency(recommendedProfit)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-yellow-50/50 p-3 rounded-lg border border-yellow-200/50">
+              <div className="flex items-start space-x-2">
+                <Info className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <div className="font-medium text-yellow-800">수수료 차이</div>
+                  <div className="text-yellow-700">
+                    eBay 수수료: {formatCurrency(recommendedFees.totalFees - currentFees.totalFees)} 
+                    ({recommendedFees.totalFees > currentFees.totalFees ? '증가' : '감소'})
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
-      </CardHeader>
-      
-      {isExpanded && (
-        <CardContent className="pt-0 space-y-6">
-          {/* 가격 비교 */}
-          <div className="space-y-3">
-            <h4 className="font-medium flex items-center">
-              <Calculator className="h-4 w-4 mr-2 text-blue-500" />
-              가격 비교
-            </h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <div className="text-sm text-muted-foreground">현재 가격</div>
-                <div className="text-lg font-bold">${currentPrice}</div>
-                <div className="text-xs text-muted-foreground">마진: {currentAnalysis.profit.profitMargin.toFixed(1)}%</div>
-              </div>
-              <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                <div className="text-sm text-green-700">추천 가격</div>
-                <div className="text-lg font-bold text-green-600">${recommendedPrice}</div>
-                <div className="text-xs text-green-600">마진: {recommendedAnalysis.profit.profitMargin.toFixed(1)}%</div>
-              </div>
-            </div>
-          </div>
-          
-          {/* eBay 수수료 상세 내역 */}
-          <div className="space-y-3">
-            <h4 className="font-medium">eBay 수수료 상세 (추천 가격 기준)</h4>
-            <div className="space-y-2">
-              {recommendedAnalysis.feeCalculation.fees.map((fee, index) => (
-                <div key={index} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">{fee.feeMemo}</span>
-                    <span className="text-xs text-muted-foreground">{fee.feeType}</span>
-                  </div>
-                  <span className="font-medium">${fee.amount.toFixed(2)}</span>
-                </div>
-              ))}
-              
-              {/* 프로모션 절약 표시 */}
-              {recommendedAnalysis.feeCalculation.savingsFromPromotions > 0 && (
-                <div className="flex justify-between items-center py-2 px-3 bg-green-50 rounded border border-green-200">
-                  <div className="flex items-center">
-                    <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                    <span className="text-sm font-medium text-green-700">프로모션 절약</span>
-                  </div>
-                  <span className="font-medium text-green-600">
-                    -${recommendedAnalysis.feeCalculation.savingsFromPromotions.toFixed(2)}
-                  </span>
-                </div>
-              )}
-              
-              <div className="border-t pt-2">
-                <div className="flex justify-between items-center font-semibold">
-                  <span>총 eBay 수수료</span>
-                  <span className="text-red-600">${recommendedAnalysis.feeCalculation.totalFees.toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* 비용 구조 분석 */}
-          <div className="space-y-3">
-            <h4 className="font-medium">비용 구조 분석 (추천 가격 기준)</h4>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm">매입가</span>
-                <span className="font-medium">${recommendedAnalysis.costs.itemCost.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">eBay 수수료</span>
-                <span className="font-medium text-red-600">${recommendedAnalysis.costs.totalFees.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">배송비</span>
-                <span className="font-medium">${recommendedAnalysis.costs.shippingCost.toFixed(2)}</span>
-              </div>
-              <div className="border-t pt-2">
-                <div className="flex justify-between items-center font-semibold">
-                  <span>총 비용</span>
-                  <span className="text-red-600">${recommendedAnalysis.costs.totalCosts.toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* 수익성 지표 */}
-          <div className="space-y-3">
-            <h4 className="font-medium">수익성 지표</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <div className="text-sm text-blue-700">총수익</div>
-                <div className="text-lg font-bold text-blue-600">
-                  ${recommendedAnalysis.profit.grossProfit.toFixed(2)}
-                </div>
-              </div>
-              <div className="p-3 bg-green-50 rounded-lg">
-                <div className="text-sm text-green-700">순수익</div>
-                <div className="text-lg font-bold text-green-600">
-                  ${recommendedAnalysis.profit.netProfit.toFixed(2)}
-                </div>
-              </div>
-            </div>
-            
-            {/* 마진율 시각화 */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>순수익 마진율</span>
-                <span className="font-medium">{recommendedAnalysis.profit.profitMargin.toFixed(1)}%</span>
-              </div>
-              <Progress value={Math.max(0, Math.min(100, recommendedAnalysis.profit.profitMargin))} className="h-2" />
-            </div>
-          </div>
-          
-          {/* 위험 지표 */}
-          {recommendedAnalysis.profit.profitMargin < 15 && (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-center">
-                <AlertTriangle className="h-4 w-4 text-yellow-600 mr-2" />
-                <span className="text-sm font-medium text-yellow-800">낮은 마진율 주의</span>
-              </div>
-              <p className="text-xs text-yellow-700 mt-1">
-                마진율이 15% 미만입니다. 가격 조정을 고려해보세요.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      )}
-    </Card>
+      </div>
+    </GlassCard>
   );
 }
