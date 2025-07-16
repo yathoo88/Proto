@@ -25,23 +25,31 @@ export async function GET(request: Request) {
       filter
     });
 
-    const transformedOrders = data.orders?.map((order) => ({
-      id: order.orderId,
-      customerName: order.buyer?.username || 'Unknown',
-      products: order.lineItems?.map((item) => ({
-        name: item.title,
-        quantity: item.quantity,
-        price: parseFloat(item.lineItemCost?.value || '0')
-      })) || [],
-      total: parseFloat(order.pricingSummary?.total?.value || '0'),
-      platform: 'eBay',
-      status: mapOrderStatus(order.orderFulfillmentStatus),
-      fees: calculateEbayFees(order),
-      profit: calculateProfit(order),
-      date: new Date(order.creationDate),
-      paymentStatus: order.orderPaymentStatus,
-      shippingStatus: order.shippingFulfillments?.[0]?.shipmentTrackingNumber ? 'Shipped' : 'Pending'
-    })) || [];
+    const transformedOrders = data.orders?.map((order) => {
+      const total = parseFloat(order.pricingSummary?.total?.value || '0');
+      const fees = calculateEbayFees(order);
+      const profit = calculateProfit(order);
+      
+      return {
+        id: order.orderId,
+        customerName: order.buyer?.username || 'Unknown',
+        products: order.lineItems?.map((item) => ({
+          name: item.title,
+          quantity: item.quantity,
+          price: parseFloat(item.lineItemCost?.value || '0')
+        })) || [],
+        total,
+        platform: 'eBay',
+        status: mapOrderStatus(order.orderFulfillmentStatus),
+        fees,
+        profit,
+        date: new Date(order.creationDate),
+        paymentStatus: order.orderPaymentStatus,
+        shippingStatus: order.shippingFulfillments?.[0]?.shipmentTrackingNumber ? 'Shipped' : 'Pending',
+        // Add margin rate for consistency
+        marginRate: total > 0 ? (profit / total) * 100 : 0
+      };
+    }) || [];
 
     return NextResponse.json({
       orders: transformedOrders,
