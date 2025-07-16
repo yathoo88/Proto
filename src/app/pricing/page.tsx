@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-input";
@@ -25,17 +25,63 @@ import { samplePricingRecommendations, sampleProducts } from "@/data/mock-data";
 import { useRealTimePricing } from "@/hooks/use-real-time-pricing";
 import { PricingRecommendation } from "@/lib/types";
 import { toast } from "sonner";
+import { useEbayData } from "@/hooks/use-ebay-data";
 
 export default function PricingPage() {
-  const [recommendations] = useState<PricingRecommendation[]>(samplePricingRecommendations);
+  const [recommendations, setRecommendations] = useState<PricingRecommendation[]>(samplePricingRecommendations);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [targetMargin, setTargetMargin] = useState(25);
   const [riskLevel, setRiskLevel] = useState("medium");
   const [isGenerating, setIsGenerating] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [useEbayApi, setUseEbayApi] = useState(true);
 
-  // 실시간 가격 계산 사용 (초기 데이터만 사용)
-  const realTimePricingResults = useRealTimePricing(samplePricingRecommendations, targetMargin, riskLevel);
+  const { data: ebayListings, loading: listingsLoading, refetch: refetchListings } = useEbayData({
+    endpoint: 'listings',
+    params: {
+      limit: '50',
+      offset: '0'
+    },
+    enabled: useEbayApi
+  });
+
+  const { data: ebayAnalytics, loading: analyticsLoading } = useEbayData({
+    endpoint: 'analytics',
+    params: {
+      metric_name: 'LISTING_VIEWS_TOTAL',
+      date_range: 'LAST_30_DAYS'
+    },
+    enabled: useEbayApi
+  });
+
+  useEffect(() => {
+    if (ebayListings?.listings && useEbayApi) {
+      const transformedRecommendations = ebayListings.listings.map((listing: {
+        id: string;
+        name: string;
+        currentPrice: number;
+      }) => {
+        const baseRecommendation = {
+          id: listing.id,
+          productName: listing.name,
+          currentPrice: listing.currentPrice,
+          recommendedPrice: listing.currentPrice * 1.15,
+          profit: listing.currentPrice * 0.15,
+          marginRate: 15,
+          demand: Math.floor(Math.random() * 100),
+          competitorPrice: listing.currentPrice * (0.95 + Math.random() * 0.1),
+          riskScore: Math.floor(Math.random() * 10) + 1
+        };
+        return baseRecommendation;
+      });
+      setRecommendations(transformedRecommendations);
+    } else if (!useEbayApi) {
+      setRecommendations(samplePricingRecommendations);
+    }
+  }, [ebayListings, useEbayApi]);
+
+  // 실시간 가격 계산 사용
+  const realTimePricingResults = useRealTimePricing(recommendations, targetMargin, riskLevel);
 
   const toggleSelection = (id: string) => {
     setSelectedItems(prev => 
@@ -113,9 +159,32 @@ export default function PricingPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">AI 가격 최적화</h1>
-          <p className="text-muted-foreground">실시간 eBay 수수료 분석으로 최적의 가격을 설정하세요</p>
+          <p className="text-muted-foreground">
+            {useEbayApi ? 'eBay API' : 'Mock 데이터'}를 사용한 실시간 가격 분석
+          </p>
         </div>
         <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              setUseEbayApi(!useEbayApi);
+              toast.success(`${!useEbayApi ? 'eBay API' : 'Mock 데이터'}로 전환했습니다`);
+            }}
+          >
+            {useEbayApi ? 'Mock 데이터 사용' : 'eBay API 사용'}
+          </Button>
+          {useEbayApi && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => refetchListings()}
+              disabled={listingsLoading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${listingsLoading ? 'animate-spin' : ''}`} />
+              새로고침
+            </Button>
+          )}
           <Button onClick={generateRecommendations} variant="outline" size="sm" disabled={isGenerating}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
             {isGenerating ? '업데이트 중...' : '추천 업데이트'}
@@ -146,7 +215,7 @@ export default function PricingPage() {
               </Button>
             </div>
             <div className="text-sm text-muted-foreground">
-              {recommendations.length}개의 추천 항목 (실시간 업데이트)
+              {listingsLoading ? '로딩 중...' : `${recommendations.length}개의 추천 항목 (실시간 업데이트)`}
             </div>
           </div>
 

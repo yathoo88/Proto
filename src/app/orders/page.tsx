@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,12 +9,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Search, Download, Plus, MoreVertical, Upload, Info } from "lucide-react";
+import { Search, Download, Plus, MoreVertical, Upload, Info, RefreshCw } from "lucide-react";
 import { FeeBreakdownCard } from "@/components/orders/fee-breakdown";
 import { sampleOrders } from "@/data/mock-data";
 import { Order } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
+import { useEbayData } from "@/hooks/use-ebay-data";
+import { toast } from "sonner";
 
 const platformColors = {
   ebay: "bg-yellow-100 text-yellow-800 border-yellow-200",
@@ -42,10 +44,74 @@ function calculateTotalFees(fees: Order['fees']): number {
 }
 
 export default function OrdersPage() {
-  const [orders] = useState<Order[]>(sampleOrders);
   const [searchTerm, setSearchTerm] = useState("");
   const [platformFilter, setPlatformFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [useEbayApi, setUseEbayApi] = useState(true);
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  const { data: ebayData, loading, error, refetch } = useEbayData({
+    endpoint: 'orders',
+    params: {
+      limit: '100',
+      offset: '0'
+    },
+    enabled: useEbayApi
+  });
+
+  useEffect(() => {
+    if (ebayData?.orders) {
+      const transformedOrders = ebayData.orders.map((order: {
+        id: string;
+        customerName: string;
+        products?: Array<{ name: string; quantity: number }>;
+        total: number;
+        fees: number;
+        profit: number;
+        status: string;
+        date: Date;
+      }) => ({
+        id: order.id,
+        orderNumber: order.id,
+        platform: 'ebay' as const,
+        customerName: order.customerName,
+        productName: order.products?.[0]?.name || 'Unknown Product',
+        sku: `SKU-${order.id.slice(-6)}`,
+        quantity: order.products?.reduce((sum: number, p) => sum + (p.quantity || 1), 0) || 1,
+        salePrice: order.total / (order.products?.reduce((sum: number, p) => sum + (p.quantity || 1), 0) || 1),
+        purchasePrice: order.total * 0.6,
+        fees: {
+          platform: order.fees * 0.7,
+          payment: order.fees * 0.3,
+          shipping: 0,
+          other: 0
+        },
+        detailedFees: [
+          {
+            feeType: 'FINAL_VALUE_FEE',
+            feeDescription: 'eBay Final Value Fee',
+            amount: order.fees * 0.7,
+            currency: 'USD'
+          },
+          {
+            feeType: 'PAYMENT_PROCESSING_FEE',
+            feeDescription: 'Payment Processing Fee',
+            amount: order.fees * 0.3,
+            currency: 'USD'
+          }
+        ],
+        profit: order.profit,
+        marginRate: (order.profit / order.total) * 100,
+        status: order.status as 'pending' | 'shipped' | 'delivered' | 'refunded',
+        orderDate: order.date,
+        deliveryDate: new Date(order.date.getTime() + 7 * 24 * 60 * 60 * 1000),
+        promotionSavings: 0
+      }));
+      setOrders(transformedOrders);
+    } else if (!useEbayApi) {
+      setOrders(sampleOrders);
+    }
+  }, [ebayData, useEbayApi]);
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -70,9 +136,32 @@ export default function OrdersPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">주문 및 정산 관리</h1>
-          <p className="text-muted-foreground">플랫폼별 주문 내역 및 수수료를 관리하세요</p>
+          <p className="text-muted-foreground">
+            {useEbayApi ? 'eBay Sandbox API' : 'Mock 데이터'}를 사용한 주문 내역
+          </p>
         </div>
         <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              setUseEbayApi(!useEbayApi);
+              toast.success(`${!useEbayApi ? 'eBay API' : 'Mock 데이터'}로 전환했습니다`);
+            }}
+          >
+            {useEbayApi ? 'Mock 데이터 사용' : 'eBay API 사용'}
+          </Button>
+          {useEbayApi && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => refetch()}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              새로고침
+            </Button>
+          )}
           <Button variant="outline" size="sm">
             <Upload className="h-4 w-4 mr-2" />
             엑셀 업로드
@@ -160,9 +249,17 @@ export default function OrdersPage() {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">주문 목록</h3>
             <div className="text-sm text-muted-foreground">
-              총 {filteredOrders.length}개 주문
+              {loading ? '로딩 중...' : `총 ${filteredOrders.length}개 주문`}
             </div>
           </div>
+          
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+              <p className="font-medium">오류가 발생했습니다</p>
+              <p className="text-sm">{error.message}</p>
+              <p className="text-xs mt-2">Mock 데이터로 전환하여 계속 사용할 수 있습니다.</p>
+            </div>
+          )}
           
           <div className="overflow-x-auto">
             <Table>
