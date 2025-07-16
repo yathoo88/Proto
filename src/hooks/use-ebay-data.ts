@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
 interface UseEbayDataOptions {
@@ -11,9 +11,15 @@ export function useEbayData<T = unknown>({ endpoint, params, enabled = true }: U
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const hasShownError = useRef(false);
 
   useEffect(() => {
     if (!enabled) return;
+    
+    // Reset error flag when enabled changes
+    if (enabled) {
+      hasShownError.current = false;
+    }
 
     const fetchData = async () => {
       setLoading(true);
@@ -34,14 +40,19 @@ export function useEbayData<T = unknown>({ endpoint, params, enabled = true }: U
       } catch (err) {
         const error = err as Error;
         setError(error);
-        toast.error('Failed to load eBay data: ' + error.message);
+        
+        // Only show error toast once to prevent spam
+        if (!hasShownError.current) {
+          toast.error('Failed to load eBay data: ' + error.message);
+          hasShownError.current = true;
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [endpoint, params, enabled]);
+  }, [endpoint, JSON.stringify(params), enabled]);
 
   const refetch = async () => {
     setLoading(true);

@@ -1,18 +1,32 @@
 export class EbayApiClient {
   private appId: string;
+  private clientSecret: string;
   private environment: string;
   private baseUrl: string;
   private accessToken: string | null = null;
+  private tokenExpiry: number | null = null;
 
   constructor() {
     this.appId = process.env.EBAY_SANDBOX_APP_ID || '';
+    this.clientSecret = process.env.EBAY_SANDBOX_CLIENT_SECRET || '';
     this.environment = process.env.EBAY_SANDBOX_ENVIRONMENT || 'SANDBOX';
     this.baseUrl = process.env.EBAY_API_BASE_URL || 'https://api.sandbox.ebay.com';
+    
+    // Check if credentials are properly configured
+    if (!this.appId || !this.clientSecret || this.clientSecret === 'YOUR_CLIENT_SECRET_HERE') {
+      console.warn('eBay API credentials not properly configured. Please update .env.local with your Client Secret.');
+    }
   }
 
   private async getAccessToken(): Promise<string> {
-    if (this.accessToken) {
+    // Check if we have a valid token that hasn't expired
+    if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
       return this.accessToken;
+    }
+
+    // Check if credentials are configured
+    if (!this.appId || !this.clientSecret || this.clientSecret === 'YOUR_CLIENT_SECRET_HERE') {
+      throw new Error('eBay API credentials not configured. Please add your Client Secret to .env.local');
     }
 
     const authUrl = process.env.EBAY_AUTH_URL || 'https://api.sandbox.ebay.com/identity/v1/oauth2/token';
@@ -22,7 +36,7 @@ export class EbayApiClient {
       scope: 'https://api.ebay.com/oauth/api_scope'
     });
 
-    const credentials = Buffer.from(`${this.appId}:`).toString('base64');
+    const credentials = Buffer.from(`${this.appId}:${this.clientSecret}`).toString('base64');
 
     try {
       const response = await fetch(authUrl, {
@@ -35,11 +49,15 @@ export class EbayApiClient {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('eBay Auth Error:', errorText);
         throw new Error(`Failed to get access token: ${response.statusText}`);
       }
 
       const data = await response.json();
       this.accessToken = data.access_token;
+      // Set token expiry (usually 2 hours, but we'll refresh after 1.5 hours to be safe)
+      this.tokenExpiry = Date.now() + (data.expires_in - 1800) * 1000;
       
       return this.accessToken;
     } catch (error) {

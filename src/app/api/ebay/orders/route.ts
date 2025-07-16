@@ -8,6 +8,17 @@ export async function GET(request: Request) {
     const offset = searchParams.get('offset') || '0';
     const filter = searchParams.get('filter') || undefined;
 
+    // Check if API is properly configured
+    if (!process.env.EBAY_SANDBOX_CLIENT_SECRET || process.env.EBAY_SANDBOX_CLIENT_SECRET === 'YOUR_CLIENT_SECRET_HERE') {
+      return NextResponse.json(
+        { 
+          error: 'eBay API not configured', 
+          message: 'Please add your eBay Client Secret to .env.local. See EBAY_API_SETUP.md for instructions.' 
+        },
+        { status: 503 }
+      );
+    }
+
     const data = await ebayApiClient.getOrders({
       limit: parseInt(limit),
       offset: parseInt(offset),
@@ -40,6 +51,18 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('Error fetching eBay orders:', error);
+    
+    // Check if it's an authentication error
+    if (error instanceof Error && error.message.includes('credentials not configured')) {
+      return NextResponse.json(
+        { 
+          error: 'eBay API not configured', 
+          message: 'Please add your eBay Client Secret to .env.local. See EBAY_API_SETUP.md for instructions.' 
+        },
+        { status: 503 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Failed to fetch orders from eBay' },
       { status: 500 }
