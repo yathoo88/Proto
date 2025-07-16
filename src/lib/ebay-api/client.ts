@@ -32,12 +32,15 @@ export class EbayApiClient {
 
     const authUrl = process.env.EBAY_AUTH_URL || 'https://api.sandbox.ebay.com/identity/v1/oauth2/token';
     
-    // eBay requires URL-encoded scopes
-    const scopes = [
-      'https://api.ebay.com/oauth/api_scope',
-      'https://api.ebay.com/oauth/api_scope/buy.browse',
-      'https://api.ebay.com/oauth/api_scope/buy.marketplace.insights'
-    ].join(' ');
+    // For Sandbox, we can only use basic public scope
+    // Production environment would support more scopes
+    const scopes = this.environment === 'SANDBOX' 
+      ? 'https://api.ebay.com/oauth/api_scope'
+      : [
+          'https://api.ebay.com/oauth/api_scope',
+          'https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly',
+          'https://api.ebay.com/oauth/api_scope/sell.analytics.readonly'
+        ].join(' ');
     
     const params = new URLSearchParams({
       grant_type: 'client_credentials',
@@ -117,8 +120,44 @@ export class EbayApiClient {
     limit?: number;
     offset?: number;
   }> {
-    const token = await this.getAccessToken();
+    // In Sandbox, always use Browse API to simulate orders
+    if (this.environment === 'SANDBOX') {
+      console.log('Using Browse API for Sandbox orders');
+      const listings = await this.getListings({ limit: params?.limit });
+      
+      return {
+        orders: listings.itemSummaries?.map((item: any, index: number) => {
+          const price = parseFloat(item.price?.value || '0');
+          const quantity = Math.floor(Math.random() * 3) + 1;
+          const total = price * quantity;
+          const fee = total * 0.1325; // eBay fee 13.25%
+          
+          return {
+            orderId: `SANDBOX-${Date.now()}-${index}`,
+            buyer: { username: `buyer_${Math.floor(Math.random() * 1000)}` },
+            lineItems: [{
+              title: item.title,
+              quantity: quantity,
+              lineItemCost: { value: price.toString() }
+            }],
+            pricingSummary: {
+              total: { value: total.toFixed(2) },
+              fee: { value: fee.toFixed(2) }
+            },
+            orderFulfillmentStatus: ['NOT_STARTED', 'IN_PROGRESS', 'FULFILLED'][Math.floor(Math.random() * 3)],
+            creationDate: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+            orderPaymentStatus: 'PAID',
+            shippingFulfillments: Math.random() > 0.5 ? [{ shipmentTrackingNumber: `TRACK${Math.floor(Math.random() * 999999)}` }] : []
+          };
+        }) || [],
+        total: listings.total || 0,
+        limit: params?.limit || 50,
+        offset: params?.offset || 0
+      };
+    }
     
+    // Production code would use the real Fulfillment API
+    const token = await this.getAccessToken();
     const queryParams = new URLSearchParams();
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.offset) queryParams.append('offset', params.offset.toString());
@@ -136,38 +175,6 @@ export class EbayApiClient {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('eBay Orders API Error:', response.status, errorText);
-        
-        // For Sandbox, we'll return mock order data based on listings
-        if (response.status === 403 && this.environment === 'SANDBOX') {
-          console.log('Using Browse API fallback for Sandbox environment');
-          // Get listings and transform them to look like orders
-          const listings = await this.getListings({ limit: params?.limit });
-          return {
-            orders: listings.itemSummaries?.map((item: any, index: number) => ({
-              orderId: `SANDBOX-ORDER-${Date.now()}-${index}`,
-              buyer: { username: `sandbox_buyer_${index + 1}` },
-              lineItems: [{
-                title: item.title,
-                quantity: 1,
-                lineItemCost: { value: item.price?.value }
-              }],
-              pricingSummary: {
-                total: { value: item.price?.value },
-                fee: { value: (parseFloat(item.price?.value || '0') * 0.1325).toFixed(2) }
-              },
-              orderFulfillmentStatus: ['NOT_STARTED', 'IN_PROGRESS', 'FULFILLED'][Math.floor(Math.random() * 3)],
-              creationDate: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-              orderPaymentStatus: 'PAID',
-              shippingFulfillments: Math.random() > 0.5 ? [{ shipmentTrackingNumber: `TRACK${Date.now()}` }] : []
-            })) || [],
-            total: listings.total || 0,
-            limit: params?.limit || 50,
-            offset: params?.offset || 0
-          };
-        }
-        
         throw new Error(`Failed to fetch orders: ${response.statusText}`);
       }
 
@@ -295,8 +302,33 @@ export class EbayApiClient {
       dimensionValues?: Array<{ value: string }>;
     }>;
   }> {
-    const token = await this.getAccessToken();
+    // In Sandbox, always return mock analytics data
+    if (this.environment === 'SANDBOX') {
+      console.log('Using mock analytics data for Sandbox environment');
+      const days = params.date_range === 'LAST_7_DAYS' ? 7 : 30;
+      
+      return {
+        records: Array.from({ length: days }, (_, i) => {
+          const date = new Date();
+          date.setDate(date.getDate() - (days - 1 - i));
+          
+          // Generate realistic looking data with trends
+          const baseValue = 500;
+          const trend = i * 10; // Upward trend
+          const randomVariation = Math.floor(Math.random() * 200) - 100;
+          const value = Math.max(50, baseValue + trend + randomVariation);
+          
+          return {
+            startDate: date.toISOString().split('T')[0],
+            metricValues: [{ value }],
+            dimensionValues: params.dimension ? [{ value: 'EBAY_US' }] : undefined
+          };
+        })
+      };
+    }
     
+    // Production code would use the real Analytics API
+    const token = await this.getAccessToken();
     const queryParams = new URLSearchParams({
       metric_name: params.metric_name
     });
@@ -314,24 +346,6 @@ export class EbayApiClient {
       });
 
       if (!response.ok) {
-        console.error('eBay Analytics API Error:', response.status, response.statusText);
-        
-        // For Sandbox, return mock analytics data
-        if (response.status === 403 && this.environment === 'SANDBOX') {
-          console.log('Using mock analytics data for Sandbox environment');
-          return {
-            records: Array.from({ length: 30 }, (_, i) => {
-              const date = new Date();
-              date.setDate(date.getDate() - (29 - i));
-              return {
-                startDate: date.toISOString().split('T')[0],
-                metricValues: [{ value: Math.floor(Math.random() * 1000) + 100 }],
-                dimensionValues: params.dimension ? [{ value: 'EBAY_US' }] : undefined
-              };
-            })
-          };
-        }
-        
         throw new Error(`Failed to fetch analytics: ${response.statusText}`);
       }
 
